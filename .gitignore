@@ -28,5 +28,24 @@ go.work.sum
 .env
 
 # Editor/IDE
-# .idea/
-# .vscode/
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Application specific
+.udp-logger-relay.yaml
+config.yaml
+udp-logger-relay
+udp-logger-relay-*
+dist/
+*.log

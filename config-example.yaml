@@ -1,0 +1,21 @@
+# Example configuration file for UDP Logger Relay
+# Save this as .udp-logger-relay.yaml in your home directory
+
+listen:
+  address: "0.0.0.0"    # Listen on all interfaces
+  port: 2333            # Port for incoming UDP messages
+
+target:
+  address: "127.0.0.1"  # Where to send reformatted messages
+  port: 12060           # N1MM Logger Plus default UDP port
+
+verbose: false          # Set to true for detailed logging
+
+formatting:
+  auto_detect: true           # Automatically detect message format
+  source_type: "auto"         # Options: auto, wsjt-x, fldigi, js8call
+  
+  n1mm:
+    station: "UDP-RELAY"      # Your station callsign
+    operator: "OP"            # Operator callsign
+    contest: "GENERAL"        # Contest name for N1MM
