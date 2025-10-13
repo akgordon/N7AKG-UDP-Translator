@@ -271,14 +271,66 @@ The demo is useful for:
 
 ### Building
 
+All build artifacts are organized into the `output/` directory.
+
+**Using Make (Linux/macOS):**
 ```bash
 # Build for current platform
-go build -o udp-logger-relay .
+make build
+
+# Build for all platforms  
+make build-all
+
+# Run tests with coverage
+make test-coverage
+
+# Clean build artifacts
+make clean
+
+# See all available targets
+make help
+```
+
+**Using PowerShell script (Windows):**
+```powershell
+# Build for current platform
+.\build.ps1 build
+
+# Build for all platforms
+.\build.ps1 build-all
+
+# Run tests with coverage
+.\build.ps1 test-coverage
+
+# Clean build artifacts  
+.\build.ps1 clean
+
+# See all available targets
+.\build.ps1 help
+```
+
+**Manual building:**
+```bash
+# Create output directory
+mkdir output
+
+# Build for current platform
+go build -ldflags "-X main.version=v1.0.0" -o output/udp-logger-relay .
 
 # Build for multiple platforms
-GOOS=windows GOARCH=amd64 go build -o udp-logger-relay-windows.exe .
-GOOS=linux GOARCH=amd64 go build -o udp-logger-relay-linux .
-GOOS=darwin GOARCH=amd64 go build -o udp-logger-relay-macos .
+GOOS=windows GOARCH=amd64 go build -o output/udp-logger-relay-windows.exe .
+GOOS=linux GOARCH=amd64 go build -o output/udp-logger-relay-linux .
+GOOS=darwin GOARCH=amd64 go build -o output/udp-logger-relay-macos .
+```
+
+**Output Directory Structure:**
+```
+output/
+├── udp-logger-relay.exe          # Windows build
+├── udp-logger-relay-linux        # Linux build  
+├── udp-logger-relay-macos        # macOS build
+├── coverage.out                  # Test coverage data
+└── coverage.html                 # Test coverage report
 ```
 
 ### Testing

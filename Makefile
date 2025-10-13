@@ -6,26 +6,33 @@ DATE ?= $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 
 LDFLAGS = -ldflags "-X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.date=$(DATE)"
 
-.PHONY: build clean test deps help
+# Output directory for all generated files
+OUTPUT_DIR = output
+
+.PHONY: build clean test deps help prepare build-windows build-linux build-macos build-all test-coverage fmt lint config run run-binary run-example-varac package
 
 # Default target
 all: build
 
+# Create output directory if it doesn't exist
+prepare:
+	@mkdir -p $(OUTPUT_DIR)
+
 # Build the application
-build:
-	go build $(LDFLAGS) -o udp-logger-relay .
+build: prepare
+	go build $(LDFLAGS) -o $(OUTPUT_DIR)/udp-logger-relay .
 
 # Build for Windows
-build-windows:
-	GOOS=windows GOARCH=amd64 go build $(LDFLAGS) -o udp-logger-relay-windows.exe .
+build-windows: prepare
+	GOOS=windows GOARCH=amd64 go build $(LDFLAGS) -o $(OUTPUT_DIR)/udp-logger-relay-windows.exe .
 
 # Build for Linux
-build-linux:
-	GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o udp-logger-relay-linux .
+build-linux: prepare
+	GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o $(OUTPUT_DIR)/udp-logger-relay-linux .
 
 # Build for macOS
-build-macos:
-	GOOS=darwin GOARCH=amd64 go build $(LDFLAGS) -o udp-logger-relay-macos .
+build-macos: prepare
+	GOOS=darwin GOARCH=amd64 go build $(LDFLAGS) -o $(OUTPUT_DIR)/udp-logger-relay-macos .
 
 # Build for all platforms
 build-all: build-windows build-linux build-macos
@@ -35,9 +42,9 @@ test:
 	go test -v ./...
 
 # Run tests with coverage
-test-coverage:
-	go test -v -coverprofile=coverage.out ./...
-	go tool cover -html=coverage.out -o coverage.html
+test-coverage: prepare
+	go test -v -coverprofile=$(OUTPUT_DIR)/coverage.out ./...
+	go tool cover -html=$(OUTPUT_DIR)/coverage.out -o $(OUTPUT_DIR)/coverage.html
 
 # Install dependencies
 deps:
@@ -46,7 +53,7 @@ deps:
 
 # Clean build artifacts
 clean:
-	rm -f udp-logger-relay udp-logger-relay-* coverage.out coverage.html
+	rm -rf $(OUTPUT_DIR)
 
 # Format code
 fmt:
@@ -64,17 +71,39 @@ config:
 run:
 	go run . --verbose
 
+# Run the built binary (must build first)
+run-binary: build
+	$(OUTPUT_DIR)/udp-logger-relay --verbose
+
+# Build and run examples
+run-example-varac:
+	go run examples/varac_demo.go
+
+# Package release binaries
+package: build-all
+	cd $(OUTPUT_DIR) && tar -czf udp-logger-relay-$(VERSION)-windows.tar.gz udp-logger-relay-windows.exe
+	cd $(OUTPUT_DIR) && tar -czf udp-logger-relay-$(VERSION)-linux.tar.gz udp-logger-relay-linux
+	cd $(OUTPUT_DIR) && tar -czf udp-logger-relay-$(VERSION)-macos.tar.gz udp-logger-relay-macos
+
 # Display help
 help:
 	@echo "Available targets:"
-	@echo "  build         Build the application for current platform"
-	@echo "  build-all     Build for Windows, Linux, and macOS"
-	@echo "  test          Run tests"
-	@echo "  test-coverage Run tests with coverage report"
-	@echo "  deps          Install and tidy dependencies"
-	@echo "  clean         Remove build artifacts"
-	@echo "  fmt           Format source code"
-	@echo "  lint          Run linter (requires golangci-lint)"
-	@echo "  config        Create example config file"
-	@echo "  run           Run application with verbose logging"
-	@echo "  help          Show this help message"
+	@echo "  build            Build the application for current platform (output/)"
+	@echo "  build-all        Build for Windows, Linux, and macOS (output/)"
+	@echo "  build-windows    Build for Windows (output/)"
+	@echo "  build-linux      Build for Linux (output/)"
+	@echo "  build-macos      Build for macOS (output/)"
+	@echo "  test             Run tests"
+	@echo "  test-coverage    Run tests with coverage report (output/)"
+	@echo "  deps             Install and tidy dependencies"
+	@echo "  clean            Remove all build artifacts (output/)"
+	@echo "  fmt              Format source code"
+	@echo "  lint             Run linter (requires golangci-lint)"
+	@echo "  config           Create example config file"
+	@echo "  run              Run application with verbose logging"
+	@echo "  run-binary       Run the built binary (must build first)"
+	@echo "  run-example-varac Run VarAC format demo"
+	@echo "  package          Create release packages (output/)"
+	@echo "  help             Show this help message"
+	@echo ""
+	@echo "All build artifacts are placed in the 'output/' directory"

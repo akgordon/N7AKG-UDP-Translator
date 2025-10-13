@@ -48,6 +48,7 @@ config.yaml
 udp-logger-relay
 udp-logger-relay-*
 dist/
+output/
 *.log
 
 # Example binaries
