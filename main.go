@@ -34,6 +34,7 @@ var (
 	listenPort int
 	targetAddr string
 	targetPort int
+	sourceType string
 	verbose    bool
 )
 
@@ -43,6 +44,7 @@ func init() {
 	rootCmd.PersistentFlags().IntVar(&listenPort, "listen-port", 2333, "port to listen for incoming UDP messages")
 	rootCmd.PersistentFlags().StringVar(&targetAddr, "target-addr", "127.0.0.1", "address to send reformatted UDP messages")
 	rootCmd.PersistentFlags().IntVar(&targetPort, "target-port", 12060, "port to send reformatted UDP messages (N1MM default)")
+	rootCmd.PersistentFlags().StringVar(&sourceType, "source-type", "auto", "expected source message type (auto, wsjt-x, fldigi, js8call, varac, n1mm)")
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "enable verbose logging")
 
 	// Add version command
@@ -80,6 +82,9 @@ func runRelay(cmd *cobra.Command, args []string) {
 	}
 	if cmd.Flag("target-port").Changed {
 		cfg.Target.Port = targetPort
+	}
+	if cmd.Flag("source-type").Changed {
+		cfg.Formatting.SourceType = sourceType
 	}
 	if cmd.Flag("verbose").Changed {
 		cfg.Verbose = verbose

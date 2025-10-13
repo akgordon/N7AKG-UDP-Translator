@@ -11,8 +11,9 @@ UDP Logger Relay is a Go application that acts as a bridge between various Ham R
   - FLDigi (PSK31, RTTY, etc.)
   - JS8Call
   - VarAC (VARA HF/FM digital modes)
+  - N1MM Logger Plus (XML contactinfo format)
   - Generic amateur radio logging formats
-- **N1MM Integration**: Converts QSO data to N1MM Logger Plus XML format
+- **Bi-directional N1MM Support**: Both converts TO N1MM format and accepts FROM N1MM format
 - **Configurable**: Flexible configuration via YAML files or command-line options
 - **Cross-platform**: Works on Windows, macOS, and Linux
 - **Verbose Logging**: Optional detailed logging for troubleshooting
@@ -66,6 +67,7 @@ Flags:
   -c, --config string        config file (default is $HOME/.udp-logger-relay.yaml)
       --listen-addr string   address to listen for incoming UDP messages (default "0.0.0.0")
       --listen-port int      port to listen for incoming UDP messages (default 2333)
+      --source-type string   expected source message type (auto, wsjt-x, fldigi, js8call, varac, n1mm) (default "auto")
       --target-addr string   address to send reformatted UDP messages (default "127.0.0.1")
       --target-port int      port to send reformatted UDP messages (N1MM default) (default 12060)
   -v, --verbose              enable verbose logging
@@ -133,6 +135,30 @@ formatting:
 
 4. Complete QSOs in VarAC - they should automatically appear in N1MM Logger Plus
 
+### N1MM Logger Plus Integration
+
+The relay can both receive and send messages to N1MM Logger Plus, making it useful for:
+- Forwarding N1MM QSOs to other logging software
+- Acting as a bridge between multiple N1MM instances
+- Relaying digital mode QSOs through N1MM format
+
+1. Configure N1MM Logger Plus UDP broadcasts:
+   - Go to **Config** → **Configure Ports, Mode Control, Audio, Other**
+   - In the **Broadcast Data** tab, enable "Broadcast contact info"
+   - Set broadcast address to `127.0.0.1:2334` (or your relay listen port)
+   - Check "When contact is logged"
+
+2. Start UDP Logger Relay with N1MM as source:
+   ```bash
+   udp-logger-relay --source-type n1mm --verbose
+   ```
+
+3. Configure destination logging software to receive N1MM-formatted UDP on port 12060
+
+4. Log contacts in N1MM - they will be reformatted and broadcast to other applications
+
+**Note**: When using N1MM as both source and destination, ensure different ports to avoid feedback loops.
+
 ### Custom Configuration Example
 
 For a contest setup with specific station information:
@@ -150,7 +176,7 @@ verbose: true
 
 formatting:
   auto_detect: true
-  source_type: "auto"  # Options: auto, wsjt-x, fldigi, js8call, varac
+  source_type: "auto"  # Options: auto, wsjt-x, fldigi, js8call, varac, n1mm
   
   n1mm:
     station: "W1AW"
@@ -179,6 +205,13 @@ formatting:
 - Automatically extracts: callsign, frequency, mode, RST reports, timestamp
 - Example JSON format: `{"app":"VarAC","call":"W1ABC","freq":"14.105","mode":"VARA HF"}`
 - Also supports plain text format: "QSO with W1ABC on 14.105 VARA"
+
+### N1MM Logger Plus
+- XML contactinfo format messages
+- Bi-directional: accepts N1MM broadcasts and outputs N1MM-compatible XML
+- Automatically extracts: callsign, frequency, mode, band, RST reports, exchange, timestamp
+- Example XML format: `<contactinfo app="N1MM Logger Plus"><call>W1ABC</call><mode>CW</mode><band>20m</band></contactinfo>`
+- Useful for relay chains and multi-station setups
 
 ### Generic Format
 - Attempts to parse any message containing:

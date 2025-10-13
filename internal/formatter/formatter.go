@@ -17,6 +17,7 @@ const (
 	MessageTypeFldigi  MessageType = "fldigi"
 	MessageTypeJS8Call MessageType = "js8call"
 	MessageTypeVarAC   MessageType = "varac"
+	MessageTypeN1MM    MessageType = "n1mm"
 	MessageTypeGeneral MessageType = "general"
 )
 
@@ -106,6 +107,13 @@ func (f *Formatter) DetectMessageType(message string) MessageType {
 		return MessageTypeJS8Call
 	}
 
+	// N1MM detection - N1MM Logger Plus sends XML contactinfo messages (check first as it's more specific)
+	if strings.Contains(message, "<contactinfo") || strings.Contains(message, "<contestname>") ||
+		strings.Contains(message, "<mycall>") || strings.Contains(message, "n1mm") ||
+		(strings.Contains(message, "app=") && strings.Contains(message, "n1mm")) {
+		return MessageTypeN1MM
+	}
+
 	// VarAC detection - VarAC sends UDP messages with specific format
 	if strings.Contains(message, "varac") || strings.Contains(message, "var-ac") ||
 		strings.Contains(message, "\"app\":\"varac\"") || strings.Contains(message, "<app>varac</app>") ||
@@ -128,6 +136,8 @@ func (f *Formatter) ParseMessage(message string, msgType MessageType) (*QSO, err
 		return f.parseJS8Call(message)
 	case MessageTypeVarAC:
 		return f.parseVarAC(message)
+	case MessageTypeN1MM:
+		return f.parseN1MM(message)
 	default:
 		return f.parseGeneral(message)
 	}
@@ -333,6 +343,99 @@ func (f *Formatter) parseVarAC(message string) (*QSO, error) {
 
 	if qso.Callsign == "" {
 		return nil, fmt.Errorf("no callsign found in VarAC message: %s", message)
+	}
+
+	return qso, nil
+}
+
+// parseN1MM parses N1MM Logger Plus XML format messages
+func (f *Formatter) parseN1MM(message string) (*QSO, error) {
+	// N1MM Logger Plus sends XML contactinfo messages
+	// Example: <contactinfo app="N1MM Logger Plus" timestamp="2023-10-12 14:30:00"><contestname>GENERAL</contestname><mycall>W1ABC</mycall><band>20m</band><rxfreq>14.074</rxfreq><call>VK1DEF</call><mode>FT8</mode><snt>-05</snt><rcv>-12</rcv></contactinfo>
+
+	qso := &QSO{
+		DateTime: time.Now(),
+	}
+
+	// Parse XML-like format using regex (lighter than full XML parsing for this use case)
+
+	// Extract callsign (the contacted station)
+	callRegex := regexp.MustCompile(`<call>([^<]+)</call>`)
+	if match := callRegex.FindStringSubmatch(message); len(match) > 1 {
+		qso.Callsign = strings.TrimSpace(match[1])
+	}
+
+	// Extract frequency
+	freqRegex := regexp.MustCompile(`<rxfreq>([^<]+)</rxfreq>`)
+	if match := freqRegex.FindStringSubmatch(message); len(match) > 1 {
+		qso.Frequency = strings.TrimSpace(match[1])
+	}
+	// Fallback to txfreq if rxfreq not found
+	if qso.Frequency == "" {
+		txFreqRegex := regexp.MustCompile(`<txfreq>([^<]+)</txfreq>`)
+		if match := txFreqRegex.FindStringSubmatch(message); len(match) > 1 {
+			qso.Frequency = strings.TrimSpace(match[1])
+		}
+	}
+
+	// Extract mode
+	modeRegex := regexp.MustCompile(`<mode>([^<]+)</mode>`)
+	if match := modeRegex.FindStringSubmatch(message); len(match) > 1 {
+		qso.Mode = strings.TrimSpace(match[1])
+	}
+
+	// Extract band
+	bandRegex := regexp.MustCompile(`<band>([^<]+)</band>`)
+	if match := bandRegex.FindStringSubmatch(message); len(match) > 1 {
+		qso.Band = strings.TrimSpace(match[1])
+	}
+
+	// Extract RST sent (N1MM uses <snt> tag)
+	rstSentRegex := regexp.MustCompile(`<snt>([^<]+)</snt>`)
+	if match := rstSentRegex.FindStringSubmatch(message); len(match) > 1 {
+		qso.RST_Sent = strings.TrimSpace(match[1])
+	}
+
+	// Extract RST received (N1MM uses <rcv> tag)
+	rstRcvdRegex := regexp.MustCompile(`<rcv>([^<]+)</rcv>`)
+	if match := rstRcvdRegex.FindStringSubmatch(message); len(match) > 1 {
+		qso.RST_Rcvd = strings.TrimSpace(match[1])
+	}
+
+	// Extract timestamp if available
+	timestampRegex := regexp.MustCompile(`timestamp="([^"]+)"`)
+	if match := timestampRegex.FindStringSubmatch(message); len(match) > 1 {
+		// Try to parse the timestamp
+		if t, err := time.Parse("2006-01-02 15:04:05", match[1]); err == nil {
+			qso.DateTime = t
+		} else if t, err := time.Parse("2006-01-02T15:04:05Z", match[1]); err == nil {
+			qso.DateTime = t
+		}
+	}
+
+	// Extract exchange information
+	exchangeRegex := regexp.MustCompile(`<exchange1?>([^<]+)</exchange1?>`)
+	if match := exchangeRegex.FindStringSubmatch(message); len(match) > 1 {
+		qso.Exchange = strings.TrimSpace(match[1])
+	}
+
+	// If we have frequency but no band, derive the band
+	if qso.Frequency != "" && qso.Band == "" {
+		if freq, err := strconv.ParseFloat(qso.Frequency, 64); err == nil {
+			qso.Band = FrequencyToBand(freq)
+		}
+	}
+
+	// Set default RST if not provided
+	if qso.RST_Sent == "" {
+		qso.RST_Sent = "599"
+	}
+	if qso.RST_Rcvd == "" {
+		qso.RST_Rcvd = "599"
+	}
+
+	if qso.Callsign == "" {
+		return nil, fmt.Errorf("no callsign found in N1MM message: %s", message)
 	}
 
 	return qso, nil

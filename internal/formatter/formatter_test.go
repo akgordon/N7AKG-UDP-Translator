@@ -21,6 +21,10 @@ func TestDetectMessageType(t *testing.T) {
 		{"VarAC QSO completed", MessageTypeVarAC},
 		{"var-ac message", MessageTypeVarAC},
 		{"<app>varac</app>", MessageTypeVarAC},
+		{`<contactinfo app="N1MM Logger Plus"><call>W1ABC</call></contactinfo>`, MessageTypeN1MM},
+		{"<contestname>ARRL-DX</contestname>", MessageTypeN1MM},
+		{"<mycall>K1ABC</mycall><band>20m</band>", MessageTypeN1MM},
+		{`app="N1MM Logger Plus"`, MessageTypeN1MM},
 		{"some random message", MessageTypeGeneral},
 	}
 
@@ -217,5 +221,81 @@ func TestParseVarAC(t *testing.T) {
 
 	if qso3.Band != "40m" {
 		t.Errorf("Expected band 40m (derived from frequency), got %s", qso3.Band)
+	}
+}
+
+func TestParseN1MM(t *testing.T) {
+	formatter := New("TEST", "OP", "GENERAL")
+
+	// Test full N1MM XML format message
+	n1mmMessage := `<contactinfo app="N1MM Logger Plus" timestamp="2023-10-12 14:30:00"><contestname>ARRL-DX-CW</contestname><mycall>W1ABC</mycall><band>20m</band><rxfreq>14.035</rxfreq><txfreq>14.035</txfreq><operator>K1XYZ</operator><mode>CW</mode><call>VK1DEF</call><snt>599</snt><rcv>599</rcv><exchange1>VK</exchange1></contactinfo>`
+	qso, err := formatter.parseN1MM(n1mmMessage)
+
+	if err != nil {
+		t.Fatalf("parseN1MM failed: %v", err)
+	}
+
+	if qso.Callsign != "VK1DEF" {
+		t.Errorf("Expected callsign VK1DEF, got %s", qso.Callsign)
+	}
+
+	if qso.Frequency != "14.035" {
+		t.Errorf("Expected frequency 14.035, got %s", qso.Frequency)
+	}
+
+	if qso.Mode != "CW" {
+		t.Errorf("Expected mode CW, got %s", qso.Mode)
+	}
+
+	if qso.Band != "20m" {
+		t.Errorf("Expected band 20m, got %s", qso.Band)
+	}
+
+	if qso.RST_Sent != "599" {
+		t.Errorf("Expected RST sent 599, got %s", qso.RST_Sent)
+	}
+
+	if qso.RST_Rcvd != "599" {
+		t.Errorf("Expected RST rcvd 599, got %s", qso.RST_Rcvd)
+	}
+
+	if qso.Exchange != "VK" {
+		t.Errorf("Expected exchange VK, got %s", qso.Exchange)
+	}
+
+	// Test minimal N1MM format
+	minimalMessage := `<contactinfo><call>JA1ABC</call><mode>SSB</mode><rxfreq>14.205</rxfreq></contactinfo>`
+	qso2, err := formatter.parseN1MM(minimalMessage)
+
+	if err != nil {
+		t.Fatalf("parseN1MM minimal format failed: %v", err)
+	}
+
+	if qso2.Callsign != "JA1ABC" {
+		t.Errorf("Expected callsign JA1ABC, got %s", qso2.Callsign)
+	}
+
+	if qso2.Mode != "SSB" {
+		t.Errorf("Expected mode SSB, got %s", qso2.Mode)
+	}
+
+	if qso2.Band != "20m" {
+		t.Errorf("Expected band 20m (derived from frequency), got %s", qso2.Band)
+	}
+
+	// Test N1MM format with only txfreq
+	txFreqMessage := `<contactinfo><call>EA1ABC</call><txfreq>7.035</txfreq><mode>CW</mode></contactinfo>`
+	qso3, err := formatter.parseN1MM(txFreqMessage)
+
+	if err != nil {
+		t.Fatalf("parseN1MM txfreq format failed: %v", err)
+	}
+
+	if qso3.Frequency != "7.035" {
+		t.Errorf("Expected frequency 7.035 (from txfreq), got %s", qso3.Frequency)
+	}
+
+	if qso3.Band != "40m" {
+		t.Errorf("Expected band 40m (derived from txfreq), got %s", qso3.Band)
 	}
 }
