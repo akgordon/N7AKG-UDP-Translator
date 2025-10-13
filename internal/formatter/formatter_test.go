@@ -17,6 +17,10 @@ func TestDetectMessageType(t *testing.T) {
 		{"WSJT-X message here", MessageTypeWSJTX},
 		{"fldigi message", MessageTypeFldigi},
 		{"js8call data", MessageTypeJS8Call},
+		{`{"app":"VarAC","call":"W1ABC"}`, MessageTypeVarAC},
+		{"VarAC QSO completed", MessageTypeVarAC},
+		{"var-ac message", MessageTypeVarAC},
+		{"<app>varac</app>", MessageTypeVarAC},
 		{"some random message", MessageTypeGeneral},
 	}
 
@@ -141,5 +145,77 @@ func TestFrequencyToBand(t *testing.T) {
 		if result != test.band {
 			t.Errorf("FrequencyToBand(%.2f) = %s; expected %s", test.freq, result, test.band)
 		}
+	}
+}
+
+func TestParseVarAC(t *testing.T) {
+	formatter := New("TEST", "OP", "GENERAL")
+
+	// Test JSON format VarAC message
+	jsonMessage := `{"app":"VarAC","call":"W1ABC","freq":"14.105","mode":"VARA HF","timestamp":"2023-10-12 14:30:00","rst_sent":"599","rst_rcvd":"599","band":"20m"}`
+	qso, err := formatter.parseVarAC(jsonMessage)
+
+	if err != nil {
+		t.Fatalf("parseVarAC failed: %v", err)
+	}
+
+	if qso.Callsign != "W1ABC" {
+		t.Errorf("Expected callsign W1ABC, got %s", qso.Callsign)
+	}
+
+	if qso.Frequency != "14.105" {
+		t.Errorf("Expected frequency 14.105, got %s", qso.Frequency)
+	}
+
+	if qso.Mode != "VARA HF" {
+		t.Errorf("Expected mode VARA HF, got %s", qso.Mode)
+	}
+
+	if qso.Band != "20m" {
+		t.Errorf("Expected band 20m, got %s", qso.Band)
+	}
+
+	if qso.RST_Sent != "599" {
+		t.Errorf("Expected RST sent 599, got %s", qso.RST_Sent)
+	}
+
+	if qso.RST_Rcvd != "599" {
+		t.Errorf("Expected RST rcvd 599, got %s", qso.RST_Rcvd)
+	}
+
+	// Test plain text format
+	textMessage := "QSO with VK2XYZ on 14.105 VARA"
+	qso2, err := formatter.parseVarAC(textMessage)
+
+	if err != nil {
+		t.Fatalf("parseVarAC text format failed: %v", err)
+	}
+
+	if qso2.Callsign != "VK2XYZ" {
+		t.Errorf("Expected callsign VK2XYZ, got %s", qso2.Callsign)
+	}
+
+	if qso2.Frequency != "14.105" {
+		t.Errorf("Expected frequency 14.105, got %s", qso2.Frequency)
+	}
+
+	if qso2.Mode != "VARA" {
+		t.Errorf("Expected mode VARA, got %s", qso2.Mode)
+	}
+
+	// Test minimal JSON format
+	minimalMessage := `{"call":"EA1ABC","freq":"7.105"}`
+	qso3, err := formatter.parseVarAC(minimalMessage)
+
+	if err != nil {
+		t.Fatalf("parseVarAC minimal format failed: %v", err)
+	}
+
+	if qso3.Callsign != "EA1ABC" {
+		t.Errorf("Expected callsign EA1ABC, got %s", qso3.Callsign)
+	}
+
+	if qso3.Band != "40m" {
+		t.Errorf("Expected band 40m (derived from frequency), got %s", qso3.Band)
 	}
 }

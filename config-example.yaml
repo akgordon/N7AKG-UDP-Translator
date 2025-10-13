@@ -13,7 +13,7 @@ verbose: false          # Set to true for detailed logging
 
 formatting:
   auto_detect: true           # Automatically detect message format
-  source_type: "auto"         # Options: auto, wsjt-x, fldigi, js8call
+  source_type: "auto"         # Options: auto, wsjt-x, fldigi, js8call, varac
   
   n1mm:
     station: "UDP-RELAY"      # Your station callsign

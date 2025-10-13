@@ -4,6 +4,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -15,6 +16,7 @@ const (
 	MessageTypeWSJTX   MessageType = "wsjt-x"
 	MessageTypeFldigi  MessageType = "fldigi"
 	MessageTypeJS8Call MessageType = "js8call"
+	MessageTypeVarAC   MessageType = "varac"
 	MessageTypeGeneral MessageType = "general"
 )
 
@@ -104,6 +106,14 @@ func (f *Formatter) DetectMessageType(message string) MessageType {
 		return MessageTypeJS8Call
 	}
 
+	// VarAC detection - VarAC sends UDP messages with specific format
+	if strings.Contains(message, "varac") || strings.Contains(message, "var-ac") ||
+		strings.Contains(message, "\"app\":\"varac\"") || strings.Contains(message, "<app>varac</app>") ||
+		strings.Contains(message, "vara") ||
+		(strings.Contains(message, "{") && strings.Contains(message, "\"call\"") && strings.Contains(message, "\"freq")) {
+		return MessageTypeVarAC
+	}
+
 	return MessageTypeGeneral
 }
 
@@ -116,6 +126,8 @@ func (f *Formatter) ParseMessage(message string, msgType MessageType) (*QSO, err
 		return f.parseFldigi(message)
 	case MessageTypeJS8Call:
 		return f.parseJS8Call(message)
+	case MessageTypeVarAC:
+		return f.parseVarAC(message)
 	default:
 		return f.parseGeneral(message)
 	}
@@ -203,6 +215,127 @@ func (f *Formatter) parseFldigi(message string) (*QSO, error) {
 func (f *Formatter) parseJS8Call(message string) (*QSO, error) {
 	// Implement JS8Call-specific parsing logic here
 	return f.parseGeneral(message)
+}
+
+// parseVarAC parses VarAC format messages
+func (f *Formatter) parseVarAC(message string) (*QSO, error) {
+	// VarAC sends UDP broadcasts in JSON format when QSOs are logged
+	// Example VarAC message format:
+	// {"app":"VarAC","call":"W1ABC","freq":"14.105","mode":"VARA","timestamp":"2023-10-12 14:30:00","rst_sent":"599","rst_rcvd":"599","band":"20m"}
+
+	qso := &QSO{
+		DateTime: time.Now(),
+		Mode:     "VARA", // Default VarAC mode
+	}
+
+	// Parse JSON-like format
+	if strings.Contains(message, "{") && strings.Contains(message, "}") {
+		// Extract callsign
+		callRegex := regexp.MustCompile(`"call"\s*:\s*"([A-Z0-9/]+)"`)
+		if match := callRegex.FindStringSubmatch(message); len(match) > 1 {
+			qso.Callsign = match[1]
+		}
+
+		// Extract frequency
+		freqRegex := regexp.MustCompile(`"freq(?:uency)?"\s*:\s*"?(\d+\.?\d*)"?`)
+		if match := freqRegex.FindStringSubmatch(message); len(match) > 1 {
+			qso.Frequency = match[1]
+		}
+
+		// Extract mode
+		modeRegex := regexp.MustCompile(`"mode"\s*:\s*"([^"]+)"`)
+		if match := modeRegex.FindStringSubmatch(message); len(match) > 1 {
+			qso.Mode = match[1]
+		}
+
+		// Extract band
+		bandRegex := regexp.MustCompile(`"band"\s*:\s*"([^"]+)"`)
+		if match := bandRegex.FindStringSubmatch(message); len(match) > 1 {
+			qso.Band = match[1]
+		}
+
+		// Extract RST sent
+		rstSentRegex := regexp.MustCompile(`"rst_sent"\s*:\s*"([^"]+)"`)
+		if match := rstSentRegex.FindStringSubmatch(message); len(match) > 1 {
+			qso.RST_Sent = match[1]
+		}
+
+		// Extract RST received
+		rstRcvdRegex := regexp.MustCompile(`"rst_r(?:cvd|eceived)"\s*:\s*"([^"]+)"`)
+		if match := rstRcvdRegex.FindStringSubmatch(message); len(match) > 1 {
+			qso.RST_Rcvd = match[1]
+		}
+
+		// Extract timestamp if available
+		timestampRegex := regexp.MustCompile(`"timestamp"\s*:\s*"([^"]+)"`)
+		if match := timestampRegex.FindStringSubmatch(message); len(match) > 1 {
+			// Try to parse the timestamp
+			if t, err := time.Parse("2006-01-02 15:04:05", match[1]); err == nil {
+				qso.DateTime = t
+			} else if t, err := time.Parse("2006-01-02T15:04:05Z", match[1]); err == nil {
+				qso.DateTime = t
+			}
+		}
+	} else {
+		// Fallback to text parsing for non-JSON VarAC messages
+		// VarAC might also send plain text messages like "QSO with W1ABC on 14.105 VARA"
+
+		// Look for callsign pattern (multiple formats)
+		callRegex := regexp.MustCompile(`(?i)(?:qso\s+(?:with\s+|completed\s+with\s+)|call[:\s]+)([A-Z0-9/]+)`)
+		if match := callRegex.FindStringSubmatch(message); len(match) > 1 {
+			qso.Callsign = strings.ToUpper(match[1])
+		} else {
+			// Fallback: look for any valid callsign in the message
+			fallbackRegex := regexp.MustCompile(`\b([A-Z0-9]{1,3}[0-9][A-Z0-9]{0,3}[A-Z])\b`)
+			if match := fallbackRegex.FindStringSubmatch(strings.ToUpper(message)); len(match) > 1 {
+				qso.Callsign = match[1]
+			}
+		}
+
+		// Look for frequency (more specific pattern to avoid matching callsign numbers)
+		freqRegex := regexp.MustCompile(`(?:on\s+|@\s+|freq[:\s]+)(\d+\.?\d*)\s*(?:MHz|khz)?`)
+		if match := freqRegex.FindStringSubmatch(message); len(match) > 1 {
+			qso.Frequency = match[1]
+		} else {
+			// Fallback: look for standalone frequency
+			freqRegex2 := regexp.MustCompile(`\b(\d{1,2}\.\d{3})\b`)
+			if match := freqRegex2.FindStringSubmatch(message); len(match) > 1 {
+				qso.Frequency = match[1]
+			}
+		}
+
+		// Look for VARA mode indicators
+		if strings.Contains(strings.ToUpper(message), "VARA") {
+			if strings.Contains(strings.ToUpper(message), "VARA HF") {
+				qso.Mode = "VARA HF"
+			} else if strings.Contains(strings.ToUpper(message), "VARA FM") {
+				qso.Mode = "VARA FM"
+			} else {
+				qso.Mode = "VARA"
+			}
+		}
+	}
+
+	// If we have frequency but no band, derive the band
+	if qso.Frequency != "" && qso.Band == "" {
+		if freq, err := strconv.ParseFloat(qso.Frequency, 64); err == nil {
+			qso.Band = FrequencyToBand(freq)
+		}
+	}
+
+	// Set default RST if not provided
+	if qso.RST_Sent == "" {
+		qso.RST_Sent = "599"
+	}
+	if qso.RST_Rcvd == "" {
+		qso.RST_Rcvd = "599"
+	}
+
+	if qso.Callsign == "" {
+		return nil, fmt.Errorf("no callsign found in VarAC message: %s", message)
+	}
+
+	return qso, nil
 }
 
 // parseGeneral attempts to parse a general format message

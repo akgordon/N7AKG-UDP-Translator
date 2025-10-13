@@ -10,6 +10,7 @@ UDP Logger Relay is a Go application that acts as a bridge between various Ham R
   - WSJT-X (FT8, FT4, MSK144, etc.)
   - FLDigi (PSK31, RTTY, etc.)
   - JS8Call
+  - VarAC (VARA HF/FM digital modes)
   - Generic amateur radio logging formats
 - **N1MM Integration**: Converts QSO data to N1MM Logger Plus XML format
 - **Configurable**: Flexible configuration via YAML files or command-line options
@@ -115,6 +116,23 @@ formatting:
 
 4. Make QSOs in WSJT-X - they should automatically appear in N1MM Logger Plus
 
+### VarAC Integration
+
+1. Configure VarAC to send UDP messages:
+   - Go to **Settings** → **Integration** → **UDP**
+   - Enable "Send UDP messages"
+   - Set UDP target to your relay listen address (e.g., `127.0.0.1:2333`)
+   - Enable "Send QSO data" and "Send on QSO complete"
+
+2. Start UDP Logger Relay:
+   ```bash
+   udp-logger-relay --verbose
+   ```
+
+3. Start N1MM Logger Plus and ensure it's listening on port 12060
+
+4. Complete QSOs in VarAC - they should automatically appear in N1MM Logger Plus
+
 ### Custom Configuration Example
 
 For a contest setup with specific station information:
@@ -132,7 +150,7 @@ verbose: true
 
 formatting:
   auto_detect: true
-  source_type: "wsjt-x"
+  source_type: "auto"  # Options: auto, wsjt-x, fldigi, js8call, varac
   
   n1mm:
     station: "W1AW"
@@ -154,6 +172,13 @@ formatting:
 ### JS8Call
 - JS8-specific message formats
 - Heartbeat and directed messages
+
+### VarAC
+- JSON format UDP broadcasts when QSOs are completed
+- Supports both VARA HF and VARA FM modes
+- Automatically extracts: callsign, frequency, mode, RST reports, timestamp
+- Example JSON format: `{"app":"VarAC","call":"W1ABC","freq":"14.105","mode":"VARA HF"}`
+- Also supports plain text format: "QSO with W1ABC on 14.105 VARA"
 
 ### Generic Format
 - Attempts to parse any message containing:
@@ -215,6 +240,32 @@ nc -u -l 2333
 # Send test message (Linux/macOS)  
 echo "test message" | nc -u 127.0.0.1 2333
 ```
+
+## Examples
+
+The `examples/` directory contains demonstration programs that show how the relay works with different message formats.
+
+### VarAC Message Format Demo
+
+Test VarAC message detection and parsing:
+
+```bash
+# Run the VarAC demo
+go run examples/varac_demo.go
+```
+
+This demo shows:
+- Full JSON format VarAC messages
+- Plain text VarAC messages
+- Minimal JSON formats
+- VARA FM examples
+- How messages are detected, parsed, and formatted for N1MM
+
+The demo is useful for:
+- Testing your VarAC configuration
+- Understanding supported message formats
+- Troubleshooting parsing issues
+- Learning how to use the formatter package
 
 ## Development
 

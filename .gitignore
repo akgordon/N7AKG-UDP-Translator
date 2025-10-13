@@ -49,3 +49,7 @@ udp-logger-relay
 udp-logger-relay-*
 dist/
 *.log
+
+# Example binaries
+examples/varac_demo
+examples/varac_demo.exe
