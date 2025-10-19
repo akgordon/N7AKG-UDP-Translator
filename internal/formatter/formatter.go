@@ -176,7 +176,7 @@ func (f *Formatter) FormatForN1MM(qso *QSO) (string, error) {
 func (f *Formatter) parseWSJTX(message string) (*QSO, error) {
 	// Example WSJT-X ADIF format: <call:6>VK1ABC<band:3>20m<mode:4>FT8<rst_sent:3>-05<rst_rcvd:3>-12<qso_date:8>20231012<time_on:6>123000<eor>
 	qso := &QSO{
-		DateTime: time.Now(),
+		DateTime: time.Now(), // Default fallback
 	}
 
 	// Parse ADIF-style fields
@@ -208,6 +208,35 @@ func (f *Formatter) parseWSJTX(message string) (*QSO, error) {
 	freqRegex := regexp.MustCompile(`<freq:\d+>(\d+\.?\d*)`)
 	if match := freqRegex.FindStringSubmatch(message); len(match) > 1 {
 		qso.Frequency = match[1]
+	}
+
+	// Parse date and time fields
+	qsoDateRegex := regexp.MustCompile(`<qso_date:\d+>(\d{8})`)
+	timeOnRegex := regexp.MustCompile(`<time_on:\d+>(\d{4,6})`)
+
+	var qsoDate, timeOn string
+	if match := qsoDateRegex.FindStringSubmatch(message); len(match) > 1 {
+		qsoDate = match[1]
+	}
+	if match := timeOnRegex.FindStringSubmatch(message); len(match) > 1 {
+		timeOn = match[1]
+	}
+
+	// If we have both date and time, parse them
+	if qsoDate != "" && timeOn != "" {
+		// Ensure time is 6 digits (HHMMSS), pad with zeros if needed
+		if len(timeOn) == 4 {
+			timeOn = timeOn + "00" // Add seconds if only HHMM
+		} else if len(timeOn) == 5 {
+			timeOn = timeOn + "0" // Add final second digit if only HHMMS
+		}
+
+		dateTimeStr := qsoDate + timeOn
+		if len(dateTimeStr) >= 14 { // YYYYMMDDHHMMSS
+			if t, err := time.Parse("20060102150405", dateTimeStr); err == nil {
+				qso.DateTime = t
+			}
+		}
 	}
 
 	if qso.Callsign == "" {
