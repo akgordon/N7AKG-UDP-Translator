@@ -196,7 +196,7 @@ func runRelay(cmd *cobra.Command, args []string) {
 	fmt.Printf("  Verbose Mode:   %t\n", cfg.Verbose)
 	fmt.Println("=========================================")
 
-	fmt.Printf("Start with option --help to see all command line options.\n\n")
+	fmt.Printf("Start with option \"help\" to see all command line options.\n\n")
 
 	if cfg.Verbose {
 		log.Printf("Starting UDP Logger Relay...")
