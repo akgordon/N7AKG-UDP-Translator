@@ -161,8 +161,12 @@ func (r *Relay) listen() {
 		}
 
 		message := string(buffer[:n])
+
+		// Always log received packets
+		log.Printf("UDP packet received from %s (%d bytes)", clientAddr, n)
+
 		if r.config.Verbose {
-			log.Printf("Received message from %s: %s", clientAddr, message)
+			log.Printf("Message content: %s", message)
 		}
 
 		// Process the message
@@ -205,14 +209,20 @@ func (r *Relay) processMessage(message string, sourceAddr *net.UDPAddr) {
 	// Send to target
 	err = r.sendMessage(n1mmMessage)
 	if err != nil {
+		log.Printf("Failed to relay packet: %v", err)
 		if r.config.Verbose {
 			log.Printf("Failed to send message: %v", err)
 		}
 		return
 	}
 
+	// Always log successful relay
+	log.Printf("Packet relayed: %s -> %s:%d (QSO: %s on %s %s)",
+		sourceAddr, r.config.Target.Address, r.config.Target.Port,
+		qso.Callsign, qso.Band, qso.Mode)
+
 	if r.config.Verbose {
-		log.Printf("Successfully relayed QSO: %s on %s (%s)", qso.Callsign, qso.Band, qso.Mode)
+		log.Printf("N1MM message sent: %s", n1mmMessage)
 	}
 }
 
