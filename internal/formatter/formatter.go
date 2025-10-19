@@ -90,36 +90,38 @@ func New(station, operator, contest string) *Formatter {
 
 // DetectMessageType attempts to detect the source message type
 func (f *Formatter) DetectMessageType(message string) MessageType {
-	message = strings.ToLower(message)
+	messageLower := strings.ToLower(message)
 
-	// WSJT-X typically sends ADIF-like messages or specific format
-	if strings.Contains(message, "wsjt-x") || strings.Contains(message, "<call:") {
+	// N1MM detection - N1MM Logger Plus sends XML contactinfo messages (check first as it's most specific)
+	if strings.Contains(messageLower, "<contactinfo") || strings.Contains(messageLower, "<contestname>") ||
+		strings.Contains(messageLower, "<mycall>") || strings.Contains(messageLower, "n1mm") ||
+		(strings.Contains(messageLower, "app=") && strings.Contains(messageLower, "n1mm")) {
+		return MessageTypeN1MM
+	}
+
+	// VarAC detection - VarAC can send ADIF format or JSON format
+	if strings.Contains(messageLower, "varac") || strings.Contains(messageLower, "var-ac") ||
+		strings.Contains(messageLower, "\"app\":\"varac\"") || strings.Contains(messageLower, "<app>varac</app>") ||
+		(strings.Contains(messageLower, "<mode:") && strings.Contains(messageLower, "vara")) ||
+		(strings.Contains(messageLower, "<submode:") && strings.Contains(messageLower, "vara")) ||
+		(strings.Contains(messageLower, "{") && strings.Contains(messageLower, "\"call\"") && strings.Contains(messageLower, "\"freq")) {
+		return MessageTypeVarAC
+	}
+
+	// WSJT-X typically sends ADIF-like messages or specific format (check after VarAC to avoid confusion)
+	if strings.Contains(messageLower, "wsjt-x") ||
+		(strings.Contains(messageLower, "<call:") && !strings.Contains(messageLower, "vara")) {
 		return MessageTypeWSJTX
 	}
 
 	// Fldigi might have specific markers
-	if strings.Contains(message, "fldigi") {
+	if strings.Contains(messageLower, "fldigi") {
 		return MessageTypeFldigi
 	}
 
 	// JS8Call detection
-	if strings.Contains(message, "js8call") || strings.Contains(message, "js8") {
+	if strings.Contains(messageLower, "js8call") || strings.Contains(messageLower, "js8") {
 		return MessageTypeJS8Call
-	}
-
-	// N1MM detection - N1MM Logger Plus sends XML contactinfo messages (check first as it's more specific)
-	if strings.Contains(message, "<contactinfo") || strings.Contains(message, "<contestname>") ||
-		strings.Contains(message, "<mycall>") || strings.Contains(message, "n1mm") ||
-		(strings.Contains(message, "app=") && strings.Contains(message, "n1mm")) {
-		return MessageTypeN1MM
-	}
-
-	// VarAC detection - VarAC sends UDP messages with specific format
-	if strings.Contains(message, "varac") || strings.Contains(message, "var-ac") ||
-		strings.Contains(message, "\"app\":\"varac\"") || strings.Contains(message, "<app>varac</app>") ||
-		strings.Contains(message, "vara") ||
-		(strings.Contains(message, "{") && strings.Contains(message, "\"call\"") && strings.Contains(message, "\"freq")) {
-		return MessageTypeVarAC
 	}
 
 	return MessageTypeGeneral
@@ -227,15 +229,20 @@ func (f *Formatter) parseJS8Call(message string) (*QSO, error) {
 	return f.parseGeneral(message)
 }
 
-// parseVarAC parses VarAC format messages
+// parseVarAC parses VarAC format messages (both ADIF and JSON formats)
 func (f *Formatter) parseVarAC(message string) (*QSO, error) {
-	// VarAC sends UDP broadcasts in JSON format when QSOs are logged
-	// Example VarAC message format:
-	// {"app":"VarAC","call":"W1ABC","freq":"14.105","mode":"VARA","timestamp":"2023-10-12 14:30:00","rst_sent":"599","rst_rcvd":"599","band":"20m"}
+	// VarAC can send messages in two formats:
+	// 1. ADIF format: <command:3>Log<parameters:267><CALL:5>n7akg <MODE:7>DYNAMIC <SUBMODE:7>VARA HF...
+	// 2. JSON format: {"app":"VarAC","call":"W1ABC","freq":"14.105","mode":"VARA"...}
 
 	qso := &QSO{
 		DateTime: time.Now(),
 		Mode:     "VARA", // Default VarAC mode
+	}
+
+	// Check if it's ADIF format (contains ADIF field tags like <CALL:5>)
+	if strings.Contains(message, "<CALL:") && strings.Contains(message, "<EOR>") {
+		return f.parseADIF(message)
 	}
 
 	// Parse JSON-like format
@@ -343,6 +350,95 @@ func (f *Formatter) parseVarAC(message string) (*QSO, error) {
 
 	if qso.Callsign == "" {
 		return nil, fmt.Errorf("no callsign found in VarAC message: %s", message)
+	}
+
+	return qso, nil
+}
+
+// parseADIF parses ADIF format messages (used by VarAC and others)
+func (f *Formatter) parseADIF(message string) (*QSO, error) {
+	qso := &QSO{
+		DateTime: time.Now(),
+	}
+
+	// Extract ADIF fields using regex
+	// ADIF format: <FIELD:length>value
+	adifFields := make(map[string]string)
+
+	// Regex to match ADIF field format: <FIELD_NAME:length>value
+	fieldRegex := regexp.MustCompile(`<([A-Z_]+):(\d+)>([^<]{0,})`)
+	matches := fieldRegex.FindAllStringSubmatch(message, -1)
+
+	for _, match := range matches {
+		if len(match) >= 4 {
+			fieldName := match[1]
+			lengthStr := match[2]
+			value := match[3]
+
+			// Parse the length and extract the correct amount of characters
+			if length, err := strconv.Atoi(lengthStr); err == nil && len(value) >= length {
+				adifFields[fieldName] = value[:length]
+			}
+		}
+	}
+
+	// Map ADIF fields to QSO struct
+	if call, exists := adifFields["CALL"]; exists {
+		qso.Callsign = strings.ToUpper(call)
+	}
+
+	if mode, exists := adifFields["MODE"]; exists {
+		qso.Mode = mode
+	} else if submode, exists := adifFields["SUBMODE"]; exists {
+		qso.Mode = submode
+	}
+
+	if band, exists := adifFields["BAND"]; exists {
+		qso.Band = band
+	}
+
+	if rstSent, exists := adifFields["RST_SENT"]; exists {
+		qso.RST_Sent = rstSent
+	}
+
+	if rstRcvd, exists := adifFields["RST_RCVD"]; exists {
+		qso.RST_Rcvd = rstRcvd
+	}
+
+	// Parse date and time
+	if qsoDate, dateExists := adifFields["QSO_DATE"]; dateExists {
+		if timeOn, timeExists := adifFields["TIME_ON"]; timeExists {
+			// ADIF date format: YYYYMMDD, time format: HHMMSS
+			dateTimeStr := qsoDate + timeOn
+			if len(dateTimeStr) >= 13 { // YYYYMMDDHHMMSS
+				if t, err := time.Parse("20060102150405", dateTimeStr); err == nil {
+					qso.DateTime = t
+				}
+			} else if len(dateTimeStr) >= 11 { // YYYYMMDDHHMM
+				if t, err := time.Parse("200601021504", dateTimeStr); err == nil {
+					qso.DateTime = t
+				}
+			}
+		}
+	}
+
+	// Set defaults if not provided
+	if qso.RST_Sent == "" {
+		qso.RST_Sent = "+00"
+	}
+	if qso.RST_Rcvd == "" {
+		qso.RST_Rcvd = "+00"
+	}
+
+	// If we don't have a band but we have frequency, try to derive it
+	if qso.Band == "" && qso.Frequency != "" {
+		if freq, err := strconv.ParseFloat(qso.Frequency, 64); err == nil {
+			qso.Band = FrequencyToBand(freq)
+		}
+	}
+
+	if qso.Callsign == "" {
+		return nil, fmt.Errorf("no callsign found in ADIF message")
 	}
 
 	return qso, nil

@@ -162,20 +162,18 @@ func (r *Relay) listen() {
 
 		message := string(buffer[:n])
 
-		// Always log received packets
-		log.Printf("UDP packet received from %s (%d bytes)", clientAddr, n)
-
 		if r.config.Verbose {
+			log.Printf("UDP packet received from %s (%d bytes)", clientAddr, n)
 			log.Printf("Message content: %s", message)
 		}
 
 		// Process the message
-		go r.processMessage(message, clientAddr)
+		go r.processMessage(message, clientAddr, n)
 	}
 }
 
 // processMessage handles the conversion and forwarding of a single message
-func (r *Relay) processMessage(message string, sourceAddr *net.UDPAddr) {
+func (r *Relay) processMessage(message string, sourceAddr *net.UDPAddr, packetSize int) {
 	// Detect message type if auto-detection is enabled
 	var msgType formatter.MessageType
 	if r.config.Formatting.AutoDetect {
@@ -216,9 +214,9 @@ func (r *Relay) processMessage(message string, sourceAddr *net.UDPAddr) {
 		return
 	}
 
-	// Always log successful relay
-	log.Printf("Packet relayed: %s -> %s:%d (QSO: %s on %s %s)",
-		sourceAddr, r.config.Target.Address, r.config.Target.Port,
+	// Only log when packet is successfully received and relayed
+	log.Printf("UDP packet received (%d bytes) from %s and relayed to %s:%d (QSO: %s on %s %s)",
+		packetSize, sourceAddr, r.config.Target.Address, r.config.Target.Port,
 		qso.Callsign, qso.Band, qso.Mode)
 
 	if r.config.Verbose {
