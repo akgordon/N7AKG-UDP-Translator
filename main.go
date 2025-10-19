@@ -64,6 +64,11 @@ func main() {
 }
 
 func runRelay(cmd *cobra.Command, args []string) {
+	// Display startup message
+	fmt.Printf("UDP Logger Relay %s starting up...\n", version)
+	fmt.Printf("Built: %s (commit: %s)\n", date, commit)
+	fmt.Println("=========================================")
+
 	// Load configuration
 	cfg, err := config.Load(configFile)
 	if err != nil {
@@ -89,6 +94,14 @@ func runRelay(cmd *cobra.Command, args []string) {
 	if cmd.Flag("verbose").Changed {
 		cfg.Verbose = verbose
 	}
+
+	// Display configuration information
+	fmt.Printf("Configuration:\n")
+	fmt.Printf("  Listen Address: %s:%d\n", cfg.Listen.Address, cfg.Listen.Port)
+	fmt.Printf("  Target Address: %s:%d\n", cfg.Target.Address, cfg.Target.Port)
+	fmt.Printf("  Source Type:    %s\n", cfg.Formatting.SourceType)
+	fmt.Printf("  Verbose Mode:   %t\n", cfg.Verbose)
+	fmt.Println("=========================================")
 
 	if cfg.Verbose {
 		log.Printf("Starting UDP Logger Relay...")
