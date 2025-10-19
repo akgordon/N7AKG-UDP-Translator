@@ -24,7 +24,30 @@ var rootCmd = &cobra.Command{
 	Long: `UDP Logger Relay listens for UDP broadcast messages from HF (Ham Radio) applications,
 reformats them according to N1MM logger format, and re-broadcasts them via UDP.
 
-This allows integration between various HF logging applications and N1MM Logger Plus.`,
+This allows integration between various HF logging applications and N1MM Logger Plus.
+
+Supported Source Applications:
+  • WSJT-X (FT8, FT4, MSK144, etc.)
+  • JS8Call
+  • Fldigi (PSK31, RTTY, etc.)
+  • VaraC
+  • N1MM Logger Plus (pass-through)
+
+Examples:
+  # Start with default settings (listen on 2333, forward to N1MM on 12060)
+  udp-logger-relay
+
+  # Use custom ports and addresses
+  udp-logger-relay --listen-port 2334 --target-addr 192.168.1.100 --target-port 12061
+
+  # Enable verbose logging
+  udp-logger-relay --verbose
+
+  # Use a specific configuration file
+  udp-logger-relay --config /path/to/config.yaml
+
+  # Force specific source type (disable auto-detection)
+  udp-logger-relay --source-type wsjt-x`,
 	Run: runRelay,
 }
 
@@ -55,6 +78,76 @@ func init() {
 			fmt.Printf("UDP Logger Relay %s (commit: %s, built: %s)\n", version, commit, date)
 		},
 	})
+
+	// Add help command with extended information
+	rootCmd.AddCommand(&cobra.Command{
+		Use:   "help-extended",
+		Short: "Show extended help and configuration information",
+		Long:  "Display detailed help including configuration file format, supported source types, and troubleshooting information.",
+		Run: func(cmd *cobra.Command, args []string) {
+			showExtendedHelp()
+		},
+	})
+}
+
+func showExtendedHelp() {
+	fmt.Println("UDP Logger Relay - Extended Help")
+	fmt.Println("================================")
+	fmt.Println()
+
+	fmt.Println("COMMAND LINE FLAGS:")
+	fmt.Println("  -c, --config <file>        Configuration file path")
+	fmt.Println("      --listen-addr <addr>   Listen address (default: 0.0.0.0)")
+	fmt.Println("      --listen-port <port>   Listen port (default: 2333)")
+	fmt.Println("      --target-addr <addr>   Target address (default: 127.0.0.1)")
+	fmt.Println("      --target-port <port>   Target port (default: 12060)")
+	fmt.Println("      --source-type <type>   Source type: auto, wsjt-x, fldigi, js8call, varac, n1mm")
+	fmt.Println("  -v, --verbose              Enable verbose logging")
+	fmt.Println("  -h, --help                 Show basic help")
+	fmt.Println()
+
+	fmt.Println("SUPPORTED SOURCE TYPES:")
+	fmt.Println("  auto     - Auto-detect message type (recommended)")
+	fmt.Println("  wsjt-x   - WSJT-X applications (FT8, FT4, MSK144, etc.)")
+	fmt.Println("  js8call  - JS8Call digital mode")
+	fmt.Println("  fldigi   - Fldigi (PSK31, RTTY, CW, etc.)")
+	fmt.Println("  varac    - VaraC HF digital mode")
+	fmt.Println("  n1mm     - N1MM Logger Plus (pass-through)")
+	fmt.Println()
+
+	fmt.Println("CONFIGURATION FILE:")
+	fmt.Println("  Create a YAML file with the following structure:")
+	fmt.Println("  ```")
+	fmt.Println("  listen:")
+	fmt.Println("    address: \"0.0.0.0\"")
+	fmt.Println("    port: 2333")
+	fmt.Println("  target:")
+	fmt.Println("    address: \"127.0.0.1\"")
+	fmt.Println("    port: 12060")
+	fmt.Println("  formatting:")
+	fmt.Println("    source_type: \"auto\"")
+	fmt.Println("    auto_detect: true")
+	fmt.Println("    n1mm:")
+	fmt.Println("      station: \"YOUR_CALL\"")
+	fmt.Println("      operator: \"YOUR_CALL\"")
+	fmt.Println("      contest: \"GENERAL\"")
+	fmt.Println("  verbose: false")
+	fmt.Println("  ```")
+	fmt.Println()
+
+	fmt.Println("DEFAULT PORTS:")
+	fmt.Println("  2333   - Common WSJT-X UDP broadcast port")
+	fmt.Println("  12060  - N1MM Logger Plus default UDP port")
+	fmt.Println("  2237   - Fldigi default UDP port")
+	fmt.Println("  2442   - JS8Call default UDP port")
+	fmt.Println()
+
+	fmt.Println("TROUBLESHOOTING:")
+	fmt.Println("  • Use --verbose flag to see detailed message flow")
+	fmt.Println("  • Check firewall settings for UDP ports")
+	fmt.Println("  • Verify source application is broadcasting UDP messages")
+	fmt.Println("  • Ensure N1MM Logger is listening on target port")
+	fmt.Println("  • Use 'netstat -an | findstr UDP' to check port usage")
 }
 
 func main() {
@@ -102,6 +195,8 @@ func runRelay(cmd *cobra.Command, args []string) {
 	fmt.Printf("  Source Type:    %s\n", cfg.Formatting.SourceType)
 	fmt.Printf("  Verbose Mode:   %t\n", cfg.Verbose)
 	fmt.Println("=========================================")
+
+	fmt.Printf("Start with option --help to see all command line options.\n\n")
 
 	if cfg.Verbose {
 		log.Printf("Starting UDP Logger Relay...")
