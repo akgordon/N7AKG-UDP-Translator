@@ -92,6 +92,18 @@ func New(station, operator, contest string) *Formatter {
 func (f *Formatter) DetectMessageType(message string) MessageType {
 	messageLower := strings.ToLower(message)
 
+	// Filter out obvious binary protocol messages (contain significant non-printable characters)
+	nonPrintableCount := 0
+	for _, b := range []byte(message) {
+		if b < 32 && b != 9 && b != 10 && b != 13 { // Exclude tab, LF, CR
+			nonPrintableCount++
+		}
+	}
+	// If more than 10% of the message is non-printable, likely binary protocol
+	if len(message) > 0 && float64(nonPrintableCount)/float64(len(message)) > 0.1 {
+		return MessageTypeGeneral // Will be ignored
+	}
+
 	// N1MM detection - N1MM Logger Plus sends XML contactinfo messages (check first as it's most specific)
 	if strings.Contains(messageLower, "<contactinfo") || strings.Contains(messageLower, "<contestname>") ||
 		strings.Contains(messageLower, "<mycall>") || strings.Contains(messageLower, "n1mm") ||
@@ -108,9 +120,11 @@ func (f *Formatter) DetectMessageType(message string) MessageType {
 		return MessageTypeVarAC
 	}
 
-	// WSJT-X typically sends ADIF-like messages or specific format (check after VarAC to avoid confusion)
-	if strings.Contains(messageLower, "wsjt-x") ||
-		(strings.Contains(messageLower, "<call:") && !strings.Contains(messageLower, "vara")) {
+	// WSJT-X sends both binary protocol messages and ADIF log messages
+	// Only process ADIF log messages (which contain proper ADIF field tags)
+	// Binary protocol messages should be ignored even if they contain "WSJT-X"
+	if (strings.Contains(messageLower, "<call:") && !strings.Contains(messageLower, "vara")) ||
+		(strings.Contains(messageLower, "wsjt-x") && strings.Contains(messageLower, "<") && strings.Contains(messageLower, ":") && strings.Contains(messageLower, ">")) {
 		return MessageTypeWSJTX
 	}
 
@@ -175,6 +189,20 @@ func (f *Formatter) FormatForN1MM(qso *QSO) (string, error) {
 // parseWSJTX parses WSJT-X format messages
 func (f *Formatter) parseWSJTX(message string) (*QSO, error) {
 	// Example WSJT-X ADIF format: <call:6>VK1ABC<band:3>20m<mode:4>FT8<rst_sent:3>-05<rst_rcvd:3>-12<qso_date:8>20231012<time_on:6>123000<eor>
+
+	// Check if this is a binary protocol message (contains non-printable characters)
+	// Binary messages should be ignored, not parsed as QSOs
+	for _, b := range []byte(message) {
+		if b < 32 && b != 9 && b != 10 && b != 13 { // Allow tab, LF, CR
+			return nil, fmt.Errorf("binary protocol message detected, ignoring")
+		}
+	}
+
+	// Also check if message lacks proper ADIF structure
+	if !strings.Contains(message, "<call:") && !strings.Contains(message, "<CALL:") {
+		return nil, fmt.Errorf("not a valid ADIF QSO message")
+	}
+
 	qso := &QSO{
 		DateTime: time.Now(), // Default fallback
 	}
@@ -568,6 +596,13 @@ func (f *Formatter) parseN1MM(message string) (*QSO, error) {
 
 // parseGeneral attempts to parse a general format message
 func (f *Formatter) parseGeneral(message string) (*QSO, error) {
+	// Immediately reject binary protocol messages to reduce spam
+	for _, b := range []byte(message) {
+		if b < 32 && b != 9 && b != 10 && b != 13 { // Allow tab, LF, CR
+			return nil, fmt.Errorf("binary protocol message, ignoring")
+		}
+	}
+
 	// Simple regex-based parsing for common formats
 	// This is a fallback parser that tries to extract basic information
 

@@ -174,6 +174,35 @@ func (r *Relay) listen() {
 
 // processMessage handles the conversion and forwarding of a single message
 func (r *Relay) processMessage(message string, sourceAddr *net.UDPAddr, packetSize int) {
+	// Filter messages based on source port - only process messages from expected application ports
+	// Common ham radio application UDP ports:
+	// 2333 - WSJT-X logging port (what we're listening on)
+	// 2237 - Fldigi
+	// 2442 - JS8Call
+	// 12060 - N1MM Logger Plus
+	// Random high ports (like 60463) are typically binary protocol messages - ignore them
+	sourcePort := sourceAddr.Port
+
+	// Allow messages from well-known ham radio application ports or the same port we're listening on
+	expectedPorts := []int{2333, 2237, 2442, 12060, r.config.Listen.Port}
+	isExpectedPort := false
+	for _, port := range expectedPorts {
+		if sourcePort == port {
+			isExpectedPort = true
+			break
+		}
+	}
+
+	// Also allow messages from localhost on any port below 10000 (likely configured applications)
+	if sourceAddr.IP.IsLoopback() && sourcePort < 10000 {
+		isExpectedPort = true
+	}
+
+	if !isExpectedPort {
+		// Silently ignore messages from unexpected ports (likely binary protocol)
+		return
+	}
+
 	// Detect message type if auto-detection is enabled
 	var msgType formatter.MessageType
 	if r.config.Formatting.AutoDetect {
