@@ -92,6 +92,21 @@ func New(station, operator, contest string) *Formatter {
 func (f *Formatter) DetectMessageType(message string) MessageType {
 	messageLower := strings.ToLower(message)
 
+	// Check for WSJT-X binary protocol header (magic bytes: 0xADBCCBDA)
+	// WSJT-X wraps ADIF messages in binary headers, so check for this first
+	if len(message) >= 4 {
+		header := []byte(message[:4])
+		if header[0] == 0xad && header[1] == 0xbc && header[2] == 0xcb && header[3] == 0xda {
+			// This is a WSJT-X binary protocol message
+			// Check if it contains ADIF data (logged QSO) or is just a status/heartbeat
+			if strings.Contains(message, "<adif") || strings.Contains(message, "<call:") || strings.Contains(message, "<CALL:") {
+				return MessageTypeWSJTX
+			}
+			// Status/heartbeat messages without ADIF should be ignored
+			return MessageTypeGeneral
+		}
+	}
+
 	// Filter out obvious binary protocol messages (contain significant non-printable characters)
 	nonPrintableCount := 0
 	for _, b := range []byte(message) {
@@ -190,12 +205,25 @@ func (f *Formatter) FormatForN1MM(qso *QSO) (string, error) {
 func (f *Formatter) parseWSJTX(message string) (*QSO, error) {
 	// Example WSJT-X ADIF format: <call:6>VK1ABC<band:3>20m<mode:4>FT8<rst_sent:3>-05<rst_rcvd:3>-12<qso_date:8>20231012<time_on:6>123000<eor>
 
-	// Check if this is a binary protocol message (contains non-printable characters)
-	// Binary messages should be ignored, not parsed as QSOs
-	for _, b := range []byte(message) {
-		if b < 32 && b != 9 && b != 10 && b != 13 { // Allow tab, LF, CR
-			return nil, fmt.Errorf("binary protocol message detected, ignoring")
-		}
+	// WSJT-X wraps ADIF messages in a binary protocol header
+	// Format: Magic (4 bytes: 0xADBCCBDA) + Schema (4 bytes) + Message Type (4 bytes) + ID length + ID + ADIF data
+	// We need to extract the ADIF portion (everything after "WSJT-X" string + some binary data)
+
+	// Look for the ADIF start marker
+	adifStart := strings.Index(message, "<adif")
+	if adifStart == -1 {
+		adifStart = strings.Index(message, "<call:")
+	}
+	if adifStart == -1 {
+		adifStart = strings.Index(message, "<CALL:")
+	}
+
+	// If we found ADIF content, extract it
+	if adifStart > 0 {
+		message = message[adifStart:]
+	} else if adifStart == -1 {
+		// No ADIF content found - this might be a status/heartbeat message
+		return nil, fmt.Errorf("not a valid ADIF QSO message")
 	}
 
 	// Also check if message lacks proper ADIF structure
