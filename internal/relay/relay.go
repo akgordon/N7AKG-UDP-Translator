@@ -164,7 +164,6 @@ func (r *Relay) listen() {
 
 		if r.config.Verbose {
 			log.Printf("UDP packet received from %s (%d bytes)", clientAddr, n)
-			log.Printf("Message content: %s", message)
 		}
 
 		// Process the message
@@ -211,17 +210,18 @@ func (r *Relay) processMessage(message string, sourceAddr *net.UDPAddr, packetSi
 		msgType = formatter.MessageType(r.config.Formatting.SourceType)
 	}
 
-	if r.config.Verbose {
-		log.Printf("Detected message type: %s", msgType)
-	}
-
 	// Parse the message
 	qso, err := r.formatter.ParseMessage(message, msgType)
 	if err != nil {
 		if r.config.Verbose {
-			log.Printf("Failed to parse message: %v", err)
+			log.Printf("Skipping message from %s: %v", sourceAddr, err)
 		}
 		return
+	}
+
+	if r.config.Verbose {
+		log.Printf("Parsed message type: %s, Callsign: %s, Band: %s, Mode: %s",
+			msgType, qso.Callsign, qso.Band, qso.Mode)
 	}
 
 	// Convert to N1MM format
