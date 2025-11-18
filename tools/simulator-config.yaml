@@ -1,0 +1,52 @@
+# WSJT-X Simulator Configuration
+# This file contains all configurable parameters for testing the UDP Logger Relay
+
+# Target settings - where to send UDP messages
+target:
+  address: "127.0.0.1"  # IP address of the relay (use 127.0.0.1 for localhost)
+  port: 2333            # UDP port the relay is listening on
+
+# Timing settings
+timing:
+  interval: 5           # Seconds between each message broadcast
+
+# Radio configuration
+radio:
+  mode: "FT8"           # Operating mode: FT8, FT4, MSK144, Q65, etc.
+  callsign: "W1TEST"    # Your station callsign
+  grid: "FN42"          # Your grid square (4 or 6 character)
+  frequency: "14074000" # Frequency in Hz
+  band: "20m"           # Band designation
+
+# Message content settings
+messages:
+  remote_callsign: "K2ABC"  # Simulated remote station callsign
+  remote_grid: "FN31"       # Simulated remote station grid square
+  signal_report: "-15"      # Simulated signal report in dB
+
+# Common test scenarios:
+#
+# FT8 on 20m (default):
+#   mode: "FT8"
+#   frequency: "14074000"
+#   band: "20m"
+#
+# FT8 on 40m:
+#   mode: "FT8"
+#   frequency: "7074000"
+#   band: "40m"
+#
+# FT4 on 20m:
+#   mode: "FT4"
+#   frequency: "14080000"
+#   band: "20m"
+#
+# MSK144 on 6m:
+#   mode: "MSK144"
+#   frequency: "50276000"
+#   band: "6m"
+#
+# Q65 on 2m:
+#   mode: "Q65"
+#   frequency: "144174000"
+#   band: "2m"
