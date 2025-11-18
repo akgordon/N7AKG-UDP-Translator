@@ -192,8 +192,8 @@ func (r *Relay) processMessage(message string, sourceAddr *net.UDPAddr, packetSi
 		}
 	}
 
-	// Also allow messages from localhost on any port below 10000 (likely configured applications)
-	if sourceAddr.IP.IsLoopback() && sourcePort < 10000 {
+	// Also allow messages from localhost on any port (applications use ephemeral ports)
+	if sourceAddr.IP.IsLoopback() {
 		isExpectedPort = true
 	}
 
