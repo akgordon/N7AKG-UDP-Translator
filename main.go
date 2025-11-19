@@ -192,10 +192,17 @@ func runRelay(cmd *cobra.Command, args []string) {
 
 	// Display configuration information
 	fmt.Printf("Configuration:\n")
+	if cfg.ConfigFileUsed != "" {
+		fmt.Printf("  Using config file: %s\n", cfg.ConfigFileUsed)
+	}
 	fmt.Printf("  Listen Address: %s:%d\n", cfg.Listen.Address, cfg.Listen.Port)
 	fmt.Printf("  Target Address: %s:%d\n", cfg.Target.Address, cfg.Target.Port)
 	fmt.Printf("  Source Type:    %s\n", cfg.Formatting.SourceType)
 	fmt.Printf("  Verbose Mode:   %t\n", cfg.Verbose)
+	fmt.Printf("\n  N1MM Parameters:\n")
+	fmt.Printf("    Station:      %s\n", cfg.Formatting.N1MM.Station)
+	fmt.Printf("    Operator:     %s\n", cfg.Formatting.N1MM.Operator)
+	fmt.Printf("    Contest:      %s\n", cfg.Formatting.N1MM.Contest)
 	fmt.Println("=========================================")
 
 	fmt.Printf("Start with option \"help\" to see all command line options.\n\n")
