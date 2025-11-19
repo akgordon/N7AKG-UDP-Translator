@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"log"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/akgordon/N7AKG-UDP-Translator/internal/config"
@@ -158,7 +160,7 @@ func main() {
 
 func runRelay(cmd *cobra.Command, args []string) {
 	// Display startup message
-	fmt.Printf("UDP Logger Relay %s starting up...\n", version)
+	fmt.Printf("N7AKG UDP Translator\n")
 	fmt.Printf("Built: %s (commit: %s)\n", date, commit)
 	fmt.Println("=========================================")
 
@@ -190,10 +192,17 @@ func runRelay(cmd *cobra.Command, args []string) {
 
 	// Display configuration information
 	fmt.Printf("Configuration:\n")
+	if cfg.ConfigFileUsed != "" {
+		fmt.Printf("  Using config file: %s\n", cfg.ConfigFileUsed)
+	}
 	fmt.Printf("  Listen Address: %s:%d\n", cfg.Listen.Address, cfg.Listen.Port)
 	fmt.Printf("  Target Address: %s:%d\n", cfg.Target.Address, cfg.Target.Port)
 	fmt.Printf("  Source Type:    %s\n", cfg.Formatting.SourceType)
 	fmt.Printf("  Verbose Mode:   %t\n", cfg.Verbose)
+	fmt.Printf("\n  N1MM Parameters:\n")
+	fmt.Printf("    Station:      %s\n", cfg.Formatting.N1MM.Station)
+	fmt.Printf("    Operator:     %s\n", cfg.Formatting.N1MM.Operator)
+	fmt.Printf("    Contest:      %s\n", cfg.Formatting.N1MM.Contest)
 	fmt.Println("=========================================")
 
 	fmt.Printf("Start with option \"help\" to see all command line options.\n\n")
@@ -220,11 +229,32 @@ func runRelay(cmd *cobra.Command, args []string) {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
+	// Listen for quit command from stdin
+	quitChan := make(chan bool, 1)
+	go func() {
+		reader := bufio.NewReader(os.Stdin)
+		fmt.Println("Enter 'Q' or 'Quit' to shut down...")
+		for {
+			input, err := reader.ReadString('\n')
+			if err != nil {
+				return
+			}
+			input = strings.TrimSpace(strings.ToLower(input))
+			if input == "q" || input == "quit" {
+				quitChan <- true
+				return
+			}
+		}
+	}()
+
 	select {
 	case err := <-errChan:
 		log.Fatalf("Relay error: %v", err)
 	case sig := <-sigChan:
 		log.Printf("Received signal %v, shutting down...", sig)
+		r.Stop()
+	case <-quitChan:
+		log.Println("Quit command received, shutting down...")
 		r.Stop()
 	}
 

@@ -35,6 +35,9 @@ type Config struct {
 			Contest  string `yaml:"contest" mapstructure:"contest"`
 		} `yaml:"n1mm" mapstructure:"n1mm"`
 	} `yaml:"formatting" mapstructure:"formatting"`
+
+	// Metadata (not from config file)
+	ConfigFileUsed string // Path to config file if one was loaded
 }
 
 // Load loads the configuration from file or creates default configuration
@@ -85,6 +88,9 @@ func Load(configFile string) (*Config, error) {
 	if err := viper.Unmarshal(cfg); err != nil {
 		return nil, fmt.Errorf("error unmarshaling config: %w", err)
 	}
+
+	// Store the config file path that was used
+	cfg.ConfigFileUsed = viper.ConfigFileUsed()
 
 	return cfg, nil
 }
