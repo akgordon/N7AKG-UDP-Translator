@@ -1,0 +1,58 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch UDP Logger Relay",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}",
+            "args": [
+                "--verbose"
+            ],
+            "env": {},
+            "showLog": true
+        },
+        {
+            "name": "Launch UDP Logger Relay (Custom Config)",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}",
+            "args": [
+                "--config",
+                "${workspaceFolder}/output/config.yaml",
+                "--verbose"
+            ],
+            "env": {},
+            "showLog": true
+        },
+        {
+            "name": "Launch UDP Logger Relay (Custom Ports)",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}",
+            "args": [
+                "--listen-port",
+                "2333",
+                "--target-port",
+                "12060",
+                "--verbose"
+            ],
+            "env": {},
+            "showLog": true
+        },
+        {
+            "name": "Debug Tests",
+            "type": "go",
+            "request": "launch",
+            "mode": "test",
+            "program": "${workspaceFolder}/internal/formatter",
+            "args": [
+                "-test.v"
+            ],
+            "showLog": true
+        }
+    ]
+}
