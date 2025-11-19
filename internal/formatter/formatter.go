@@ -135,17 +135,21 @@ func (f *Formatter) DetectMessageType(message string) MessageType {
 		return MessageTypeVarAC
 	}
 
+	// Fldigi detection - check BEFORE WSJT-X since both use ADIF format
+	// Look for FLDIGI-specific tags or identifiers
+	if strings.Contains(messageLower, "fldigi") ||
+		strings.Contains(messageLower, "<fldigi_") ||
+		strings.Contains(messageLower, "<station_callsign:") ||
+		strings.Contains(messageLower, "<programid:") && strings.Contains(messageLower, "fldigi") {
+		return MessageTypeFldigi
+	}
+
 	// WSJT-X sends both binary protocol messages and ADIF log messages
 	// Only process ADIF log messages (which contain proper ADIF field tags)
 	// Binary protocol messages should be ignored even if they contain "WSJT-X"
 	if (strings.Contains(messageLower, "<call:") && !strings.Contains(messageLower, "vara")) ||
 		(strings.Contains(messageLower, "wsjt-x") && strings.Contains(messageLower, "<") && strings.Contains(messageLower, ":") && strings.Contains(messageLower, ">")) {
 		return MessageTypeWSJTX
-	}
-
-	// Fldigi might have specific markers
-	if strings.Contains(messageLower, "fldigi") {
-		return MessageTypeFldigi
 	}
 
 	// JS8Call detection
@@ -309,8 +313,13 @@ func (f *Formatter) parseWSJTX(message string) (*QSO, error) {
 
 // parseFldigi parses Fldigi format messages
 func (f *Formatter) parseFldigi(message string) (*QSO, error) {
-	// Implement Fldigi-specific parsing logic here
-	return f.parseGeneral(message)
+	// Check if this is a test message (no CALL field = not a QSO)
+	if !strings.Contains(strings.ToUpper(message), "<CALL:") {
+		return nil, fmt.Errorf("fldigi test/status message, not a QSO")
+	}
+
+	// Fldigi sends ADIF format, so use the ADIF parser
+	return f.parseADIF(message)
 }
 
 // parseJS8Call parses JS8Call format messages
