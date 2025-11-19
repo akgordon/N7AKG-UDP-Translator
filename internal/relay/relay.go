@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/akgordon/UDP-Logger-Relay/internal/config"
-	"github.com/akgordon/UDP-Logger-Relay/internal/formatter"
+	"github.com/akgordon/N7AKG-UDP-Translator/internal/config"
+	"github.com/akgordon/N7AKG-UDP-Translator/internal/formatter"
 )
 
 // Relay manages the UDP listener and broadcaster

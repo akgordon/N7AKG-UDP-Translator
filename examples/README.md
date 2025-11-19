@@ -49,7 +49,7 @@ package main
 
 import (
     "fmt"
-    "github.com/akgordon/UDP-Logger-Relay/internal/formatter"
+    "github.com/akgordon/N7AKG-UDP-Translator/internal/formatter"
 )
 
 func main() {

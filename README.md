@@ -1,4 +1,4 @@
-# UDP-Logger-Relay
+# N7AKG-UDP-Translator
 
 Listen for UDP broadcast from HF apps, reformat and re-broadcast as UDP in N1MM format.
 
@@ -22,37 +22,37 @@ UDP Logger Relay is a Go application that acts as a bridge between various Ham R
 
 ### Download Pre-built Binaries
 
-Download the latest release for your platform from the [Releases page](https://github.com/akgordon/UDP-Logger-Relay/releases).
+Download the latest release for your platform from the [Releases page](https://github.com/akgordon/N7AKG-UDP-Translator/releases).
 
 ### Build from Source
 
 1. Install Go 1.21 or later
 2. Clone the repository:
    ```bash
-   git clone https://github.com/akgordon/UDP-Logger-Relay.git
-   cd UDP-Logger-Relay
+   git clone https://github.com/akgordon/N7AKG-UDP-Translator.git
+   cd N7AKG-UDP-Translator
    ```
 3. Build the application:
    ```bash
-   go build -o udp-logger-relay .
+   go build -o N7AKG-UDP-Translator .
    ```
 
 ## Quick Start
 
 1. **Basic usage with default settings:**
    ```bash
-   udp-logger-relay
+   N7AKG-UDP-Translator
    ```
    This starts the relay listening on `0.0.0.0:2333` and forwarding to `127.0.0.1:12060` (N1MM default port).
 
 2. **With custom ports:**
    ```bash
-   udp-logger-relay --listen-port 2334 --target-port 12061
+   N7AKG-UDP-Translator --listen-port 2334 --target-port 12061
    ```
 
 3. **With verbose logging:**
    ```bash
-   udp-logger-relay --verbose
+   N7AKG-UDP-Translator --verbose
    ```
 
 ## Configuration
@@ -61,22 +61,22 @@ Download the latest release for your platform from the [Releases page](https://g
 
 ```
 Usage:
-  udp-logger-relay [flags]
+  N7AKG-UDP-Translator [flags]
 
 Flags:
-  -c, --config string        config file (default is $HOME/.udp-logger-relay.yaml)
+  -c, --config string        config file (default is $HOME/.N7AKG-UDP-Translator.yaml)
       --listen-addr string   address to listen for incoming UDP messages (default "0.0.0.0")
       --listen-port int      port to listen for incoming UDP messages (default 2333)
       --source-type string   expected source message type (auto, wsjt-x, fldigi, js8call, varac, n1mm) (default "auto")
       --target-addr string   address to send reformatted UDP messages (default "127.0.0.1")
       --target-port int      port to send reformatted UDP messages (N1MM default) (default 12060)
   -v, --verbose              enable verbose logging
-  -h, --help                 help for udp-logger-relay
+  -h, --help                 help for N7AKG-UDP-Translator
 ```
 
 ### Configuration File
 
-Create a configuration file at `$HOME/.udp-logger-relay.yaml`:
+Create a configuration file at `$HOME/.N7AKG-UDP-Translator.yaml`:
 
 ```yaml
 # UDP Logger Relay Configuration
@@ -111,7 +111,7 @@ formatting:
 
 2. Start UDP Logger Relay:
    ```bash
-   udp-logger-relay --verbose
+   N7AKG-UDP-Translator --verbose
    ```
 
 3. Start N1MM Logger Plus and ensure it's listening on port 12060
@@ -128,7 +128,7 @@ formatting:
 
 2. Start UDP Logger Relay:
    ```bash
-   udp-logger-relay --verbose
+   N7AKG-UDP-Translator --verbose
    ```
 
 3. Start N1MM Logger Plus and ensure it's listening on port 12060
@@ -150,7 +150,7 @@ The relay can both receive and send messages to N1MM Logger Plus, making it usef
 
 2. Start UDP Logger Relay with N1MM as source:
    ```bash
-   udp-logger-relay --source-type n1mm --verbose
+   N7AKG-UDP-Translator --source-type n1mm --verbose
    ```
 
 3. Configure destination logging software to receive N1MM-formatted UDP on port 12060
@@ -254,13 +254,13 @@ formatting:
 
 ```bash
 # Show version information
-udp-logger-relay version
+N7AKG-UDP-Translator version
 
 # Test with maximum verbosity
-udp-logger-relay --verbose --listen-port 2333 --target-port 12060
+N7AKG-UDP-Translator --verbose --listen-port 2333 --target-port 12060
 
 # Use custom config file
-udp-logger-relay --config /path/to/config.yaml --verbose
+N7AKG-UDP-Translator --config /path/to/config.yaml --verbose
 ```
 
 ### Network Testing
@@ -348,20 +348,20 @@ make help
 mkdir output
 
 # Build for current platform
-go build -ldflags "-X main.version=v1.0.0" -o output/udp-logger-relay .
+go build -ldflags "-X main.version=v1.0.0" -o output/N7AKG-UDP-Translator .
 
 # Build for multiple platforms
-GOOS=windows GOARCH=amd64 go build -o output/udp-logger-relay-windows.exe .
-GOOS=linux GOARCH=amd64 go build -o output/udp-logger-relay-linux .
-GOOS=darwin GOARCH=amd64 go build -o output/udp-logger-relay-macos .
+GOOS=windows GOARCH=amd64 go build -o output/N7AKG-UDP-Translator-windows.exe .
+GOOS=linux GOARCH=amd64 go build -o output/N7AKG-UDP-Translator-linux .
+GOOS=darwin GOARCH=amd64 go build -o output/N7AKG-UDP-Translator-macos .
 ```
 
 **Output Directory Structure:**
 ```
 output/
-├── udp-logger-relay.exe          # Windows build
-├── udp-logger-relay-linux        # Linux build  
-├── udp-logger-relay-macos        # macOS build
+├── N7AKG-UDP-Translator.exe          # Windows build
+├── N7AKG-UDP-Translator-linux        # Linux build  
+├── N7AKG-UDP-Translator-macos        # macOS build
 ├── coverage.out                  # Test coverage data
 └── coverage.html                 # Test coverage report
 ```
@@ -390,8 +390,8 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Support
 
-- **Issues**: Report bugs and request features on [GitHub Issues](https://github.com/akgordon/UDP-Logger-Relay/issues)
-- **Discussions**: Join the conversation in [GitHub Discussions](https://github.com/akgordon/UDP-Logger-Relay/discussions)
+- **Issues**: Report bugs and request features on [GitHub Issues](https://github.com/akgordon/N7AKG-UDP-Translator/issues)
+- **Discussions**: Join the conversation in [GitHub Discussions](https://github.com/akgordon/N7AKG-UDP-Translator/discussions)
 
 ## Acknowledgments
 

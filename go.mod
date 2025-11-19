@@ -1,4 +1,4 @@
-module github.com/akgordon/UDP-Logger-Relay
+module github.com/akgordon/N7AKG-UDP-Translator
 
 go 1.21
 

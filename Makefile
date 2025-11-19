@@ -20,19 +20,19 @@ prepare:
 
 # Build the application
 build: prepare
-	go build $(LDFLAGS) -o $(OUTPUT_DIR)/udp-logger-relay .
+	go build $(LDFLAGS) -o $(OUTPUT_DIR)/N7AKG-UDP-Translator .
 
 # Build for Windows
 build-windows: prepare
-	GOOS=windows GOARCH=amd64 go build $(LDFLAGS) -o $(OUTPUT_DIR)/udp-logger-relay-windows.exe .
+	GOOS=windows GOARCH=amd64 go build $(LDFLAGS) -o $(OUTPUT_DIR)/N7AKG-UDP-Translator-windows.exe .
 
 # Build for Linux
 build-linux: prepare
-	GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o $(OUTPUT_DIR)/udp-logger-relay-linux .
+	GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o $(OUTPUT_DIR)/N7AKG-UDP-Translator-linux .
 
 # Build for macOS
 build-macos: prepare
-	GOOS=darwin GOARCH=amd64 go build $(LDFLAGS) -o $(OUTPUT_DIR)/udp-logger-relay-macos .
+	GOOS=darwin GOARCH=amd64 go build $(LDFLAGS) -o $(OUTPUT_DIR)/N7AKG-UDP-Translator-macos .
 
 # Build for all platforms
 build-all: build-windows build-linux build-macos
@@ -65,7 +65,7 @@ lint:
 
 # Create example config
 config:
-	cp config-example.yaml .udp-logger-relay.yaml
+	cp config-example.yaml .N7AKG-UDP-Translator.yaml
 
 # Run the application with verbose logging
 run:
@@ -73,7 +73,7 @@ run:
 
 # Run the built binary (must build first)
 run-binary: build
-	$(OUTPUT_DIR)/udp-logger-relay --verbose
+	$(OUTPUT_DIR)/N7AKG-UDP-Translator --verbose
 
 # Build and run examples
 run-example-varac:
@@ -81,9 +81,9 @@ run-example-varac:
 
 # Package release binaries
 package: build-all
-	cd $(OUTPUT_DIR) && tar -czf udp-logger-relay-$(VERSION)-windows.tar.gz udp-logger-relay-windows.exe
-	cd $(OUTPUT_DIR) && tar -czf udp-logger-relay-$(VERSION)-linux.tar.gz udp-logger-relay-linux
-	cd $(OUTPUT_DIR) && tar -czf udp-logger-relay-$(VERSION)-macos.tar.gz udp-logger-relay-macos
+	cd $(OUTPUT_DIR) && tar -czf N7AKG-UDP-Translator-$(VERSION)-windows.tar.gz N7AKG-UDP-Translator-windows.exe
+	cd $(OUTPUT_DIR) && tar -czf N7AKG-UDP-Translator-$(VERSION)-linux.tar.gz N7AKG-UDP-Translator-linux
+	cd $(OUTPUT_DIR) && tar -czf N7AKG-UDP-Translator-$(VERSION)-macos.tar.gz N7AKG-UDP-Translator-macos
 
 # Display help
 help:

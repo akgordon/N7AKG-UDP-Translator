@@ -135,7 +135,7 @@ Use your own callsign and grid:
 
 1. **Start the UDP Logger Relay** in one terminal:
    ```powershell
-   .\udp-logger-relay.exe --verbose
+   .\N7AKG-UDP-Translator.exe --verbose
    ```
 
 2. **Run the simulator** in another terminal:

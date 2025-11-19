@@ -79,25 +79,25 @@ function Show-Help {
 
 switch ($Target.ToLower()) {
     "build" {
-        Invoke-Build "" "" "udp-logger-relay.exe"
+        Invoke-Build "" "" "N7AKG-UDP-Translator.exe"
     }
     
     "build-windows" {
-        Invoke-Build "windows" "amd64" "udp-logger-relay-windows.exe"
+        Invoke-Build "windows" "amd64" "N7AKG-UDP-Translator-windows.exe"
     }
     
     "build-linux" {
-        Invoke-Build "linux" "amd64" "udp-logger-relay-linux"
+        Invoke-Build "linux" "amd64" "N7AKG-UDP-Translator-linux"
     }
     
     "build-macos" {
-        Invoke-Build "darwin" "amd64" "udp-logger-relay-macos"
+        Invoke-Build "darwin" "amd64" "N7AKG-UDP-Translator-macos"
     }
     
     "build-all" {
-        Invoke-Build "windows" "amd64" "udp-logger-relay-windows.exe"
-        Invoke-Build "linux" "amd64" "udp-logger-relay-linux"
-        Invoke-Build "darwin" "amd64" "udp-logger-relay-macos"
+        Invoke-Build "windows" "amd64" "N7AKG-UDP-Translator-windows.exe"
+        Invoke-Build "linux" "amd64" "N7AKG-UDP-Translator-linux"
+        Invoke-Build "darwin" "amd64" "N7AKG-UDP-Translator-macos"
         Write-Host "✓ All builds completed in $OutputDir/"
     }
     

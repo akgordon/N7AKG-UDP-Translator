@@ -1,5 +1,5 @@
 # Example configuration file for UDP Logger Relay
-# Save this as .udp-logger-relay.yaml in your home directory
+# Save this as .N7AKG-UDP-Translator.yaml in your home directory
 
 listen:
   address: "0.0.0.0"    # Listen on all interfaces

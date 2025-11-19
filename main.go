@@ -7,8 +7,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/akgordon/UDP-Logger-Relay/internal/config"
-	"github.com/akgordon/UDP-Logger-Relay/internal/relay"
+	"github.com/akgordon/N7AKG-UDP-Translator/internal/config"
+	"github.com/akgordon/N7AKG-UDP-Translator/internal/relay"
 	"github.com/spf13/cobra"
 )
 
@@ -19,7 +19,7 @@ var (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "udp-logger-relay",
+	Use:   "N7AKG-UDP-Translator",
 	Short: "UDP Logger Relay - Listen for UDP broadcasts from HF apps and reformat for N1MM",
 	Long: `UDP Logger Relay listens for UDP broadcast messages from HF (Ham Radio) applications,
 reformats them according to N1MM logger format, and re-broadcasts them via UDP.
@@ -35,19 +35,19 @@ Supported Source Applications:
 
 Examples:
   # Start with default settings (listen on 2333, forward to N1MM on 12060)
-  udp-logger-relay
+  N7AKG-UDP-Translator
 
   # Use custom ports and addresses
-  udp-logger-relay --listen-port 2334 --target-addr 192.168.1.100 --target-port 12061
+  N7AKG-UDP-Translator --listen-port 2334 --target-addr 192.168.1.100 --target-port 12061
 
   # Enable verbose logging
-  udp-logger-relay --verbose
+  N7AKG-UDP-Translator --verbose
 
   # Use a specific configuration file
-  udp-logger-relay --config /path/to/config.yaml
+  N7AKG-UDP-Translator --config /path/to/config.yaml
 
   # Force specific source type (disable auto-detection)
-  udp-logger-relay --source-type wsjt-x`,
+  N7AKG-UDP-Translator --source-type wsjt-x`,
 	Run: runRelay,
 }
 
@@ -62,7 +62,7 @@ var (
 )
 
 func init() {
-	rootCmd.PersistentFlags().StringVarP(&configFile, "config", "c", "", "config file (default is $HOME/.udp-logger-relay.yaml)")
+	rootCmd.PersistentFlags().StringVarP(&configFile, "config", "c", "", "config file (default is $HOME/.N7AKG-UDP-Translator.yaml)")
 	rootCmd.PersistentFlags().StringVar(&listenAddr, "listen-addr", "0.0.0.0", "address to listen for incoming UDP messages")
 	rootCmd.PersistentFlags().IntVar(&listenPort, "listen-port", 2333, "port to listen for incoming UDP messages")
 	rootCmd.PersistentFlags().StringVar(&targetAddr, "target-addr", "127.0.0.1", "address to send reformatted UDP messages")

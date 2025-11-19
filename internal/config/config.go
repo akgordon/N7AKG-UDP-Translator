@@ -65,7 +65,7 @@ func Load(configFile string) (*Config, error) {
 		viper.AddConfigPath(home)
 		viper.AddConfigPath(".")
 		viper.SetConfigType("yaml")
-		viper.SetConfigName(".udp-logger-relay")
+		viper.SetConfigName(".N7AKG-UDP-Translator")
 	}
 
 	// Environment variable support
@@ -96,7 +96,7 @@ func SaveDefault() error {
 		return fmt.Errorf("unable to find home directory: %w", err)
 	}
 
-	configPath := filepath.Join(home, ".udp-logger-relay.yaml")
+	configPath := filepath.Join(home, ".N7AKG-UDP-Translator.yaml")
 
 	defaultConfig := `# UDP Logger Relay Configuration
 listen:

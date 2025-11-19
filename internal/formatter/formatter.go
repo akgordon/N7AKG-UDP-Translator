@@ -181,7 +181,7 @@ func (f *Formatter) ParseMessage(message string, msgType MessageType) (*QSO, err
 // FormatForN1MM converts a QSO to N1MM Logger Plus XML format
 func (f *Formatter) FormatForN1MM(qso *QSO) (string, error) {
 	contact := N1MMContactInfo{
-		App:       "UDP-Logger-Relay",
+		App:       "N7AKG-UDP-Translator",
 		Contest:   f.contest,
 		Station:   f.station,
 		Band:      qso.Band,

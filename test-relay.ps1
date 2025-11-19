@@ -6,9 +6,9 @@ Write-Host "=================================" -ForegroundColor Cyan
 Write-Host ""
 
 # Check if the relay executable exists
-if (-not (Test-Path ".\udp-logger-relay.exe")) {
+if (-not (Test-Path ".\N7AKG-UDP-Translator.exe")) {
     Write-Host "Building UDP Logger Relay..." -ForegroundColor Yellow
-    go build -o udp-logger-relay.exe .
+    go build -o N7AKG-UDP-Translator.exe .
     if ($LASTEXITCODE -ne 0) {
         Write-Host "Failed to build relay. Please check for errors." -ForegroundColor Red
         exit 1
@@ -30,7 +30,7 @@ Write-Host ""
 Write-Host "To test the UDP Logger Relay:" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "1. In Terminal 1, start the relay in verbose mode:" -ForegroundColor White
-Write-Host "   .\udp-logger-relay.exe --verbose" -ForegroundColor Gray
+Write-Host "   .\N7AKG-UDP-Translator.exe --verbose" -ForegroundColor Gray
 Write-Host ""
 Write-Host "2. In Terminal 2, run the simulator:" -ForegroundColor White
 Write-Host "   .\tools\wsjtx_simulator.exe" -ForegroundColor Gray
@@ -51,5 +51,5 @@ if ($response -eq "y" -or $response -eq "Y") {
     Write-Host "Starting UDP Logger Relay in verbose mode..." -ForegroundColor Green
     Write-Host "Press Ctrl+C to stop" -ForegroundColor Yellow
     Write-Host ""
-    .\udp-logger-relay.exe --verbose
+    .\N7AKG-UDP-Translator.exe --verbose
 }
