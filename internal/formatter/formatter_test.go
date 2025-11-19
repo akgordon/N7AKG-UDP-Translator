@@ -298,4 +298,29 @@ func TestParseN1MM(t *testing.T) {
 	if qso3.Band != "40m" {
 		t.Errorf("Expected band 40m (derived from txfreq), got %s", qso3.Band)
 	}
+
+	// Test N1MM timestamp parsing - should be in UTC
+	timestampMessage := `<contactinfo app="N1MM Logger Plus" timestamp="2025-11-19 01:36:37"><call>WB4WOJ</call><mode>CW</mode><band>14</band></contactinfo>`
+	qso4, err := formatter.parseN1MM(timestampMessage)
+
+	if err != nil {
+		t.Fatalf("parseN1MM timestamp format failed: %v", err)
+	}
+
+	// Verify the timestamp is parsed as UTC
+	expectedTime := time.Date(2025, 11, 19, 1, 36, 37, 0, time.UTC)
+	if !qso4.DateTime.Equal(expectedTime) {
+		t.Errorf("Expected timestamp %v (UTC), got %v (location: %v)", expectedTime, qso4.DateTime, qso4.DateTime.Location())
+	}
+
+	// Verify the formatted output preserves UTC time
+	formattedXML, err := formatter.FormatForN1MM(qso4)
+	if err != nil {
+		t.Fatalf("FormatForN1MM failed: %v", err)
+	}
+
+	// Check that the output contains the UTC timestamp
+	if !strings.Contains(formattedXML, "2025-11-19 01:36:37") {
+		t.Errorf("Expected formatted XML to contain UTC timestamp '2025-11-19 01:36:37', got: %s", formattedXML)
+	}
 }

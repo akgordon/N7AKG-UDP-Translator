@@ -289,7 +289,8 @@ func (f *Formatter) parseWSJTX(message string) (*QSO, error) {
 
 		dateTimeStr := qsoDate + timeOn
 		if len(dateTimeStr) >= 14 { // YYYYMMDDHHMMSS
-			if t, err := time.Parse("20060102150405", dateTimeStr); err == nil {
+			// ADIF times are in UTC
+			if t, err := time.ParseInLocation("20060102150405", dateTimeStr, time.UTC); err == nil {
 				qso.DateTime = t
 			}
 		}
@@ -375,8 +376,8 @@ func (f *Formatter) parseVarAC(message string) (*QSO, error) {
 		// Extract timestamp if available
 		timestampRegex := regexp.MustCompile(`"timestamp"\s*:\s*"([^"]+)"`)
 		if match := timestampRegex.FindStringSubmatch(message); len(match) > 1 {
-			// Try to parse the timestamp
-			if t, err := time.Parse("2006-01-02 15:04:05", match[1]); err == nil {
+			// Try to parse the timestamp (assuming UTC)
+			if t, err := time.ParseInLocation("2006-01-02 15:04:05", match[1], time.UTC); err == nil {
 				qso.DateTime = t
 			} else if t, err := time.Parse("2006-01-02T15:04:05Z", match[1]); err == nil {
 				qso.DateTime = t
@@ -497,14 +498,14 @@ func (f *Formatter) parseADIF(message string) (*QSO, error) {
 	// Parse date and time
 	if qsoDate, dateExists := adifFields["QSO_DATE"]; dateExists {
 		if timeOn, timeExists := adifFields["TIME_ON"]; timeExists {
-			// ADIF date format: YYYYMMDD, time format: HHMMSS
+			// ADIF date format: YYYYMMDD, time format: HHMMSS (in UTC)
 			dateTimeStr := qsoDate + timeOn
 			if len(dateTimeStr) >= 13 { // YYYYMMDDHHMMSS
-				if t, err := time.Parse("20060102150405", dateTimeStr); err == nil {
+				if t, err := time.ParseInLocation("20060102150405", dateTimeStr, time.UTC); err == nil {
 					qso.DateTime = t
 				}
 			} else if len(dateTimeStr) >= 11 { // YYYYMMDDHHMM
-				if t, err := time.Parse("200601021504", dateTimeStr); err == nil {
+				if t, err := time.ParseInLocation("200601021504", dateTimeStr, time.UTC); err == nil {
 					qso.DateTime = t
 				}
 			}
@@ -587,13 +588,29 @@ func (f *Formatter) parseN1MM(message string) (*QSO, error) {
 		qso.RST_Rcvd = strings.TrimSpace(match[1])
 	}
 
-	// Extract timestamp if available
-	timestampRegex := regexp.MustCompile(`timestamp="([^"]+)"`)
-	if match := timestampRegex.FindStringSubmatch(message); len(match) > 1 {
-		// Try to parse the timestamp
-		if t, err := time.Parse("2006-01-02 15:04:05", match[1]); err == nil {
+	// Extract timestamp if available (try both attribute and element formats)
+	var timestampStr string
+
+	// Try attribute format first: timestamp="2025-11-19 01:36:37"
+	timestampAttrRegex := regexp.MustCompile(`timestamp="([^"]+)"`)
+	if match := timestampAttrRegex.FindStringSubmatch(message); len(match) > 1 {
+		timestampStr = match[1]
+	}
+
+	// Try element format: <timestamp>2025-11-19 01:36:37</timestamp>
+	if timestampStr == "" {
+		timestampElemRegex := regexp.MustCompile(`<timestamp>([^<]+)</timestamp>`)
+		if match := timestampElemRegex.FindStringSubmatch(message); len(match) > 1 {
+			timestampStr = strings.TrimSpace(match[1])
+		}
+	}
+
+	// Parse the timestamp if found
+	if timestampStr != "" {
+		// N1MM sends timestamps in UTC, so we need to parse them in UTC location
+		if t, err := time.ParseInLocation("2006-01-02 15:04:05", timestampStr, time.UTC); err == nil {
 			qso.DateTime = t
-		} else if t, err := time.Parse("2006-01-02T15:04:05Z", match[1]); err == nil {
+		} else if t, err := time.Parse("2006-01-02T15:04:05Z", timestampStr); err == nil {
 			qso.DateTime = t
 		}
 	}
