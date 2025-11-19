@@ -37,7 +37,6 @@ type QSO struct {
 type N1MMContactInfo struct {
 	XMLName       xml.Name `xml:"contactinfo"`
 	App           string   `xml:"app,attr"`
-	Timestamp     string   `xml:"timestamp,attr"`
 	Contest       string   `xml:"contestname"`
 	Station       string   `xml:"mycall"`
 	Band          string   `xml:"band"`
@@ -46,6 +45,7 @@ type N1MMContactInfo struct {
 	Operator      string   `xml:"operator"`
 	Mode          string   `xml:"mode"`
 	Call          string   `xml:"call"`
+	Timestamp     string   `xml:"timestamp"`
 	CountryPrefix string   `xml:"countryprefix"`
 	WPXPrefix     string   `xml:"wpxprefix"`
 	StationPrefix string   `xml:"stationprefix"`
@@ -178,7 +178,6 @@ func (f *Formatter) ParseMessage(message string, msgType MessageType) (*QSO, err
 func (f *Formatter) FormatForN1MM(qso *QSO) (string, error) {
 	contact := N1MMContactInfo{
 		App:       "UDP-Logger-Relay",
-		Timestamp: qso.DateTime.Format("2006-01-02 15:04:05"),
 		Contest:   f.contest,
 		Station:   f.station,
 		Band:      qso.Band,
@@ -187,6 +186,7 @@ func (f *Formatter) FormatForN1MM(qso *QSO) (string, error) {
 		Operator:  f.operator,
 		Mode:      qso.Mode,
 		Call:      qso.Callsign,
+		Timestamp: qso.DateTime.Format("2006-01-02 15:04:05"),
 		SentNr:    qso.RST_Sent,
 		RcvdNr:    qso.RST_Rcvd,
 		Exchange:  qso.Exchange,
@@ -266,16 +266,16 @@ func (f *Formatter) parseWSJTX(message string) (*QSO, error) {
 		qso.Frequency = match[1]
 	}
 
-	// Parse date and time fields
-	qsoDateRegex := regexp.MustCompile(`<qso_date:\d+>(\d{8})`)
-	timeOnRegex := regexp.MustCompile(`<time_on:\d+>(\d{4,6})`)
+	// Parse date and time fields (case-insensitive, handle spaces)
+	qsoDateRegex := regexp.MustCompile(`(?i)<qso_date:\d+>(\d{8})`)
+	timeOnRegex := regexp.MustCompile(`(?i)<time_on:\d+>(\d{4,6})`)
 
 	var qsoDate, timeOn string
 	if match := qsoDateRegex.FindStringSubmatch(message); len(match) > 1 {
-		qsoDate = match[1]
+		qsoDate = strings.TrimSpace(match[1])
 	}
 	if match := timeOnRegex.FindStringSubmatch(message); len(match) > 1 {
-		timeOn = match[1]
+		timeOn = strings.TrimSpace(match[1])
 	}
 
 	// If we have both date and time, parse them
@@ -293,6 +293,10 @@ func (f *Formatter) parseWSJTX(message string) (*QSO, error) {
 				qso.DateTime = t
 			}
 		}
+	} else if qsoDate == "" || timeOn == "" {
+		// Debug: if we couldn't parse date/time, fall back to current time
+		// This ensures we always have a timestamp in the N1MM message
+		qso.DateTime = time.Now()
 	}
 
 	if qso.Callsign == "" {
